@@ -1,0 +1,14 @@
+n_orb = 3
+beta = 10.9
+
+file_h0 = /home/otsuki/gitclones/pomerol2dcore/sample/h0.in
+file_umat = /home/otsuki/gitclones/pomerol2dcore/sample/umat.in
+
+# GF
+flag_gf = 1
+n_w = 20
+
+# Two-particle GF
+flag_vx = 0
+n_w2f = 2
+n_w2b = 1
