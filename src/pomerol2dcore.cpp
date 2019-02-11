@@ -4,7 +4,6 @@
 #include <time.h>
 #include <cassert>
 #include <memory>
-//#include <boost/multi_array.hpp>
 
 #include "ReadWrite.h"
 #include "Params.h"
@@ -127,9 +126,7 @@ int main(int argc, char* argv[])
         std::cerr << "Usage: " << argv[0] << " filename" << std::endl;
     }
     std::string filein(argv[1]);
-//    std::string filename("/home/otsuki/gitclones/pomerol2dcore/sample/param.in");
     Params prms;
-//    read_params(filein, prms);
     prms.read(filein);
     prms.print();
 
@@ -218,14 +215,14 @@ int main(int argc, char* argv[])
         INFO(Storage);
     }
 
-    // Let us make a test, that our Hamiltonian commutes with an operator, that
-    // represents the total number of particles. The preset for such operator is
-    // defined in OperatorPresets.h and .cpp files.
-    OperatorPresets::N N(IndexSize);
-    if (!world.rank()) {
-        INFO("N terms");
-        N.printAllTerms();
-        if ((Storage.commutes(N))) INFO("H commutes with N");
+    // check if H commutes with N
+    {
+        OperatorPresets::N N(IndexSize);
+        if (!world.rank()) {
+            INFO("N terms");
+            N.printAllTerms();
+            if ((Storage.commutes(N))) INFO("H commutes with N");
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -384,12 +381,10 @@ int main(int argc, char* argv[])
     if(prms.flag_gf){
         print_section("Single-particle Green function");
         time_temp = clock();
-    // The local Greens function in the Matsubara domain G_{"A",up}(i\omega_n)
 
-//        WriteDataFile wdf(prms.file_gf);
-        WriteDataFile *wdf;
+        std::unique_ptr<WriteDataFile> wdf;
         if (!world.rank()){
-            wdf = new WriteDataFile(prms.file_gf);
+            wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
         for(ParticleIndex i=0; i<IndexSize; i++){
@@ -417,10 +412,9 @@ int main(int argc, char* argv[])
     if(prms.flag_vx){
         print_section("Two-particle Green functions");
 
-//        WriteDataFile wdf(prms.file_vx);
-        WriteDataFile *wdf;
+        std::unique_ptr<WriteDataFile> wdf;
         if (!world.rank()){
-            wdf = new WriteDataFile(prms.file_vx);
+            wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
         for(ParticleIndex i=0; i<IndexSize; i++) {
@@ -445,7 +439,6 @@ int main(int argc, char* argv[])
 
                         time_temp = clock();
 
-//                        boost::multi_array<ComplexType, 3> x(boost::extents[prms.n_w2b][2*prms.n_w2f][2*prms.n_w2f]);
                         ThreeFreq freq(prms.n_w2b, 2*prms.n_w2f, 2*prms.n_w2f);
                         std::vector<ComplexType> x(freq.size());
 

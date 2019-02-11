@@ -1,8 +1,8 @@
 n_orb = 3
 beta = 10.9
 
-file_h0 = /home/otsuki/gitclones/pomerol2dcore/sample/h0.in
-file_umat = /home/otsuki/gitclones/pomerol2dcore/sample/umat.in
+file_h0 = h0.in
+file_umat = umat.in
 
 # GF
 flag_gf = 1
