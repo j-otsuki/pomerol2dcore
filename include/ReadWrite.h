@@ -8,8 +8,20 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <ostream>
+#include <complex>
 
 
+// overload output of complex class
+template <typename T>
+std::ostream& operator<<(std::ostream& out, const std::complex<T>& c)
+{
+    out << c.real() << " " << c.imag();
+    return out;
+}
+
+
+// A class for reading formatted data in a file
 class ReadDataFile
 {
 private:
@@ -28,6 +40,7 @@ public:
 };
 
 
+// A class for writing data into a file
 class WriteDataFile
 {
 private:
@@ -37,10 +50,13 @@ public:
     WriteDataFile(std::string &filename);
 
     template<typename T>
-    void write_vector(std::vector<T> &v) {
+    void write_vector(const std::vector<T> &v) {
         for(int i=0; i<v.size(); i++) {
             ofs << v[i] << std::endl;
         }
+    }
+    void write_str(const std::string &str) {
+        ofs << str << std::endl;
     }
 };
 

@@ -10,9 +10,12 @@
 
 class Params{
 public:
+    // mandatory parameters
     int n_orb;
     double beta;
+    int flag_spin_conserve;
 
+    // file names
     std::string file_h0;
     std::string file_umat;
     std::string file_states;
@@ -24,7 +27,7 @@ public:
     int n_w;
     std::string file_gf;
 
-    // Two-particle GF
+    // two-particle GF
     bool flag_vx;
     int n_w2f;
     int n_w2b;

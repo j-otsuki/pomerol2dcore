@@ -6,12 +6,14 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <iomanip>
 
 
 ReadDataFile::ReadDataFile(std::string &filename, int n_index, int n_val) : n_index(n_index), n_val(n_val) {
     ifs.open(filename);
     if( ifs.fail() ){
         std::cerr << "Failed in opening the file" << std::endl;
+        exit(2);
     }
     indices.resize(n_index);
     values.resize(n_val);
@@ -66,6 +68,7 @@ WriteDataFile::WriteDataFile(std::string &filename){
     ofs.open(filename);
     if( ofs.fail() ){
         std::cerr << "Failed in opening the file" << std::endl;
+        exit(2);
     }
-    ofs << std::scientific;
+    ofs << std::scientific << std::setprecision(15);
 }

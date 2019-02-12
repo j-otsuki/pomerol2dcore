@@ -1,5 +1,6 @@
 #include <pomerol.h>
 #include <fstream>
+#include <sstream>
 #include <stdio.h>
 #include <time.h>
 #include <cassert>
@@ -33,6 +34,15 @@ void print_time(clock_t start, const char *str)
         std::cout << "#Time: "
                   << (double)(clock()-start)/CLOCKS_PER_SEC << " sec"
                   << " (" << str << ")"<< std::endl << std::flush;
+    }
+}
+
+
+void print_commutation(bool if_commute, const std::string &op)
+{
+    std::string str_commute(if_commute ? " = 0" : "!= 0");
+    if(!world.rank()){
+        std::cout << "[H, " << op << "] " << str_commute << std::endl;
     }
 }
 
@@ -103,7 +113,7 @@ int main(int argc, char* argv[])
 
     if(argc != 2){
         std::cerr << "Usage: " << argv[0] << " input_file_name" << std::endl;
-        exit(0);
+        exit(1);
     }
     std::string filein(argv[1]);
     Params prms;
@@ -191,18 +201,19 @@ int main(int argc, char* argv[])
     Storage.prepare();
     // Print out the Hamiltonian.
     if (!world.rank()) {
-        INFO("Terms");
-        INFO(Storage);
+        INFO("H =\n" << Storage);
     }
 
-    // check if H commutes with N
-    {
-        OperatorPresets::N N(IndexSize);
-        if (!world.rank()) {
-            INFO("N terms");
-            N.printAllTerms();
-            if ((Storage.commutes(N))) INFO("H commutes with N");
-        }
+    // define operators for checking symmetry
+    OperatorPresets::N op_N(IndexSize);
+    Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
+    Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
+    Operator op_Jz = op_Sz + op_Lz;
+    if (!world.rank()) {
+        INFO("N  = \n" << op_N);
+        INFO("Sz = \n" << op_Sz);
+        INFO("Lz = \n" << op_Lz);
+        INFO("Jz = \n" << op_Jz);
     }
 
     // -----------------------------------------------------------------------
@@ -210,17 +221,22 @@ int main(int argc, char* argv[])
 
     Symmetrizer Symm(IndexInfo, Storage);
     Symm.compute();
-    // Commutation with N and Sz are checked in compute() by default
+    // [H, N] and [H, Sz] are checked in compute() by default
+
+    // compute [H, N] for printing
+    print_commutation(Storage.commutes(op_N), "N ");
+
+    // compute [H, Sz] for printing
+    bool flag_sz_commute = Storage.commutes(op_Sz);
+    print_commutation(flag_sz_commute, "Sz");
+    if(!flag_sz_commute && prms.flag_spin_conserve){
+        std::cerr << "ERROR: Sz does not commute with H, but flag_spin_conserve=true" << std::endl;
+        exit(3);
+    }
 
     // Perform additional symmetry check with Lz and Jz
-    Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
-    Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
-    Operator op_Jz = op_Sz + op_Lz;
-    INFO("Sz = " << op_Sz);
-    INFO("Lz = " << op_Lz);
-    INFO("Jz = " << op_Jz);
-    if(Symm.checkSymmetry(op_Lz))  INFO("[H, Lz] = 0");
-    if(Symm.checkSymmetry(op_Jz))  INFO("[H, Jz] = 0");
+    print_commutation(Symm.checkSymmetry(op_Lz), "Lz");
+    print_commutation(Symm.checkSymmetry(op_Jz), "Jz");
 
     INFO("Conserved quantum numbers " << Symm.getQuantumNumbers());
 
@@ -353,6 +369,11 @@ int main(int argc, char* argv[])
 
         for(ParticleIndex i=0; i<IndexSize; i++){
             for(ParticleIndex j=0; j<IndexSize; j++) {
+                // skip if spin components of i and j are different
+                if(prms.flag_spin_conserve && index2spn[i] != index2spn[j]){
+                    continue;
+                }
+
                 GreensFunction GF(S,H,*C[i],*CX[j], rho);
                 GF.prepare();
                 GF.compute();
@@ -363,6 +384,9 @@ int main(int argc, char* argv[])
                 }
 
                 if (!world.rank()) {
+                    std::stringstream ss;
+                    ss << "# " << i << " " << j;
+                    wdf->write_str(ss.str());
                     wdf->write_vector(giw);
                 }
             }
@@ -385,7 +409,9 @@ int main(int argc, char* argv[])
             for (ParticleIndex j = 0; j < IndexSize; j++) {
                 for (ParticleIndex k = 0; k < IndexSize; k++) {
                     for (ParticleIndex l = 0; l < IndexSize; l++) {
+                        // TODO: check spin components
 
+                        // TODO: check def of chi_{ijkl}
                         TwoParticleGF Chi(S, H, *C[i], *C[j], *CX[k], *CX[l], rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
