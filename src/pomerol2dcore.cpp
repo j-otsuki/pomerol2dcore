@@ -180,8 +180,8 @@ int main(int argc, char* argv[])
             int s4 = index2spn[rdf.get_index(3)];
             int o4 = index2orb[rdf.get_index(3)];
             double val = rdf.get_val(0);
-            // c^+_{o1,s1} c^+_{o2,s2} c_{o4,s4} c_{o3,s3}
-            L.addTerm(TwoBodyTerm("A", val, o1, o2, o3, o4, s1, s2, s3, s4));
+            // (1/2) U c^+_{o1,s1} c^+_{o2,s2} c_{o4,s4} c_{o3,s3}
+            L.addTerm(TwoBodyTerm("A", val/2., o1, o2, o3, o4, s1, s2, s3, s4));
         }
     }
 
