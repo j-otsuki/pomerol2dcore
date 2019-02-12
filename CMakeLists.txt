@@ -31,8 +31,4 @@ set (sources
 add_executable(pomerol2dcore src/pomerol2dcore.cpp ${sources})
 target_link_libraries(pomerol2dcore ${pomerol_LIBRARIES})
 
-#find_package (GSL REQUIRED)
-#message(STATUS "GSL includes: " ${GSL_INCLUDE_DIR} )
-#message(STATUS "GSL libs: ${GSL_LIBRARIES}" )
-##target_include_directories(atomic PUBLIC ${GSL_INCLUDE_DIR})
-#target_link_libraries(atomic ${GSL_LIBRARIES})
+install(TARGETS pomerol2dcore DESTINATION bin)
