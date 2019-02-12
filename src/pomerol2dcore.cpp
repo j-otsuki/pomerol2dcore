@@ -7,10 +7,13 @@
 
 #include "ReadWrite.h"
 #include "Params.h"
+#include "OperatorPresetsExtra.h"
 
 using namespace Pomerol;
 
 boost::mpi::communicator world;
+
+typedef std::pair<double, QuantumNumbers> EigenSystem;
 
 
 // Small routine to make fancy screen output for text.
@@ -21,31 +24,6 @@ void print_section (const std::string& str)
         std::cout << str << std::endl;
         std::cout << std::string(str.size(),'=') << std::endl;
     }
-}
-
-template<class T>
-std::string toString(T in)
-{
-    std::ostringstream stream;
-    stream << in;
-    return stream.str();
-}
-
-typedef std::pair<double, QuantumNumbers> EigenSystem;
-
-void fprint_eigen(std::string &filename, std::vector<EigenSystem> &eigen)
-{
-    // std::ofstream f("test.dat");
-    // for(int i=0; i<eigen.size(); i++){
-    //     f << std::scientific << eigen[i].first << "  " << eigen[i].second << std::endl;
-    // }
-    // f.close();
-
-    FILE *fp=fopen(filename.c_str(), "w");
-    for(int i=0; i<eigen.size(); i++){
-        fprintf(fp, "%.6e %s\n", eigen[i].first, toString(eigen[i].second).c_str());
-    }
-    fclose(fp);
 }
 
 
@@ -73,6 +51,7 @@ Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned
     T->Value = Value;
     return T;
 }
+
 
 Lattice::Term* TwoBodyTerm ( const std::string& Label, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short orbital3, unsigned short orbital4, unsigned short spin1, unsigned short spin2, unsigned short spin3, unsigned short spin4 )
 {
@@ -123,7 +102,8 @@ int main(int argc, char* argv[])
     world = boost::mpi::communicator();
 
     if(argc != 2){
-        std::cerr << "Usage: " << argv[0] << " filename" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " input_file_name" << std::endl;
+        exit(0);
     }
     std::string filein(argv[1]);
     Params prms;
@@ -229,34 +209,18 @@ int main(int argc, char* argv[])
     print_section("Symmetry");
 
     Symmetrizer Symm(IndexInfo, Storage);
-    /* At this stage Symmetrizer checks symmetries with some predefined operators,
-     * such as number-of-particles and sz operators.
-     */
     Symm.compute();
-    /* A custom check for a symmetry can be done using
-     * Symmetrizer.checkSymmetry(Operator).
-     * After checking all the symmetry operations, Symmetrizer defines a set of
-     * quantum numbers, which uniquely identifies the closed region in the
-     * phase space.
-     * Calling Symmetrizer::compute(true) will skip all symmetry operations and
-     * result in a single Hamiltonian block in the end.
-     */
+    // Commutation with N and Sz are checked in compute() by default
 
-//    TODO
-     // Lz is conserved in the absence of LS coupling
-     // Jz=Lz+Sz is conserved in the presence of LS coupling
-//     if( lambda_ls==0. ){ // with LS coupling
-//         Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
-//         INFO("Lz = " << op_Lz);
-//         if(Symm.checkSymmetry(op_Lz))  INFO("[H, Lz] = 0");
-//     }
-//     else{ // without LS coupling
-//        Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
-//        Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
-//        Operator op_Jz = op_Sz + op_Lz;
-//        INFO("Jz = " << op_Jz);
-//        if(Symm.checkSymmetry(op_Jz))  INFO("[H, Jz] = 0");
-//    }
+    // Perform additional symmetry check with Lz and Jz
+    Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
+    Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
+    Operator op_Jz = op_Sz + op_Lz;
+    INFO("Sz = " << op_Sz);
+    INFO("Lz = " << op_Lz);
+    INFO("Jz = " << op_Jz);
+    if(Symm.checkSymmetry(op_Lz))  INFO("[H, Lz] = 0");
+    if(Symm.checkSymmetry(op_Jz))  INFO("[H, Jz] = 0");
 
     INFO("Conserved quantum numbers " << Symm.getQuantumNumbers());
 

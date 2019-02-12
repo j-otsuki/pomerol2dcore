@@ -25,6 +25,7 @@ add_definitions(-std=c++11)
 set (sources
     src/ReadWrite.cpp
     src/Params.cpp
+    src/OperatorPresetsExtra.cpp
 )
 
 add_executable(pomerol2dcore src/pomerol2dcore.cpp ${sources})
