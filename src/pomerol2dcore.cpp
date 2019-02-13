@@ -139,15 +139,41 @@ int main(int argc, char* argv[])
     ParticleIndex IndexSize = IndexInfo.getIndexSize();
 
     // -----------------------------------------------------------------------
-    // i = (orbital, spin)
-    // converter from i to (orbital, spin)
-    std::vector<int> index2spn;
-    std::vector<int> index2orb;
+    // converter
+
+    struct converter_info{
+        ParticleIndex index;
+        int spn;
+        int orb;
+    };
+    std::vector<converter_info> converter(2*prms.n_orb);
+
     for(ParticleIndex i=0; i<IndexSize; i++){
         IndexClassification::IndexInfo info = IndexInfo.getInfo(i);
-        index2spn.push_back(info.Spin);
-        index2orb.push_back(info.Orbital);
-        std::cout << i << " " << index2orb[i] << " " << index2spn[i] << std::endl;
+        int spn = info.Spin;
+        int orb = info.Orbital;
+
+        int j;  // converter index
+        if(prms.index_order==0){
+            // (0, up), (1, up), ..., (0, down), (1, down), ...
+            j = prms.n_orb * spn + orb;
+        }
+        else{
+            // (0, up), (0, down), (1, up), (1, down), ...
+            j = 2 * orb + spn;
+        }
+        converter[j].index = i;
+        converter[j].spn = spn;
+        converter[j].orb = orb;
+    }
+
+    if (!world.rank()){
+        for(int j=0; j<2*prms.n_orb; j++){
+            std::cout << "Converter " << j << " : ";
+            std::cout << "Index " << converter[j].index;
+            std::cout << ", orb " << converter[j].orb;
+            std::cout << ", spn " << converter[j].spn << std::endl;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -157,10 +183,10 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_h0, 2, 1);
         while( rdf.read_line() ){
-            int s1 = index2spn[rdf.get_index(0)];
-            int o1 = index2orb[rdf.get_index(0)];
-            int s2 = index2spn[rdf.get_index(1)];
-            int o2 = index2orb[rdf.get_index(1)];
+            int s1 = converter[rdf.get_index(0)].spn;
+            int o1 = converter[rdf.get_index(0)].orb;
+            int s2 = converter[rdf.get_index(1)].spn;
+            int o2 = converter[rdf.get_index(1)].orb;
             double val = rdf.get_val(0);
             // c^+_{o1,s1} c_{o2,s2}
             L.addTerm(OneBodyTerm("A", val, o1, o2, s1, s2));
@@ -171,14 +197,14 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_umat, 4, 1);
         while( rdf.read_line() ){
-            int s1 = index2spn[rdf.get_index(0)];
-            int o1 = index2orb[rdf.get_index(0)];
-            int s2 = index2spn[rdf.get_index(1)];
-            int o2 = index2orb[rdf.get_index(1)];
-            int s3 = index2spn[rdf.get_index(2)];
-            int o3 = index2orb[rdf.get_index(2)];
-            int s4 = index2spn[rdf.get_index(3)];
-            int o4 = index2orb[rdf.get_index(3)];
+            int s1 = converter[rdf.get_index(0)].spn;
+            int o1 = converter[rdf.get_index(0)].orb;
+            int s2 = converter[rdf.get_index(1)].spn;
+            int o2 = converter[rdf.get_index(1)].orb;
+            int s3 = converter[rdf.get_index(2)].spn;
+            int o3 = converter[rdf.get_index(2)].orb;
+            int s4 = converter[rdf.get_index(3)].spn;
+            int o4 = converter[rdf.get_index(3)].orb;
             double val = rdf.get_val(0);
             // (1/2) U c^+_{o1,s1} c^+_{o2,s2} c_{o4,s4} c_{o3,s3}
             L.addTerm(TwoBodyTerm("A", val/2., o1, o2, o3, o4, s1, s2, s3, s4));
@@ -338,18 +364,16 @@ int main(int argc, char* argv[])
 
 //    std::vector <CreationOperator> CX;
     std::vector<std::unique_ptr<CreationOperator> > CX;
-    for (ParticleIndex i = 0; i < IndexSize; i++) {
-//        CX.push_back(CreationOperator(IndexInfo, S, H, i));
-        CX.emplace_back(new CreationOperator(IndexInfo, S, H, i));
+    for( auto info : converter ){
+        CX.emplace_back(new CreationOperator(IndexInfo, S, H, info.index));
         CX.back()->prepare();
         CX.back()->compute();
     }
 
 //    std::vector <AnnihilationOperator> C;
     std::vector<std::unique_ptr<AnnihilationOperator> > C;
-    for (ParticleIndex i = 0; i < IndexSize; i++) {
-//        C.push_back(AnnihilationOperator(IndexInfo, S, H, i));
-        C.emplace_back(new AnnihilationOperator(IndexInfo, S, H, i));
+    for( auto info : converter ){
+        C.emplace_back(new AnnihilationOperator(IndexInfo, S, H, info.index));
         C.back()->prepare();
         C.back()->compute();
     }
@@ -367,20 +391,20 @@ int main(int argc, char* argv[])
             wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
-        for(ParticleIndex i=0; i<IndexSize; i++){
-            for(ParticleIndex j=0; j<IndexSize; j++) {
+        for(int i=0; i<2*prms.n_orb; i++){
+            for(int j=0; j<2*prms.n_orb; j++){
                 // skip if spin components of i and j are different
-                if(prms.flag_spin_conserve && index2spn[i] != index2spn[j]){
+                if(prms.flag_spin_conserve && converter[i].spn != converter[j].spn){
                     continue;
                 }
 
-                GreensFunction GF(S,H,*C[i],*CX[j], rho);
+                GreensFunction GF(S,H,*C[converter[i].index],*CX[converter[j].index], rho);
                 GF.prepare();
                 GF.compute();
 
                 std::vector<ComplexType> giw(prms.n_w);
-                for(int i=0; i<prms.n_w; i++){
-                    giw[i] = GF(i);
+                for(int iw=0; iw<prms.n_w; iw++){
+                    giw[iw] = GF(iw);
                 }
 
                 if (!world.rank()) {
@@ -405,14 +429,15 @@ int main(int argc, char* argv[])
             wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
-        for(ParticleIndex i=0; i<IndexSize; i++) {
-            for (ParticleIndex j = 0; j < IndexSize; j++) {
-                for (ParticleIndex k = 0; k < IndexSize; k++) {
-                    for (ParticleIndex l = 0; l < IndexSize; l++) {
+        for(int i=0; i<2*prms.n_orb; i++){
+            for(int j=0; j<2*prms.n_orb; j++){
+                for(int k=0; k<2*prms.n_orb; k++){
+                    for(int l=0; l<2*prms.n_orb; l++){
                         // TODO: check spin components
 
                         // TODO: check def of chi_{ijkl}
-                        TwoParticleGF Chi(S, H, *C[i], *C[j], *CX[k], *CX[l], rho);
+                        TwoParticleGF Chi(S, H, *C[converter[i].index], *C[converter[j].index],
+                                *CX[converter[k].index], *CX[converter[l].index], rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
                         /** Minimal magnitude of the coefficient of a term to take it into account. */
@@ -441,6 +466,9 @@ int main(int argc, char* argv[])
                         }
 
                         if (!world.rank()) {
+                            std::stringstream ss;
+                            ss << "# " << i << " " << j << " " << k << " " << l;
+                            wdf->write_str(ss.str());
                             wdf->write_vector(x);
                         }
 

@@ -15,6 +15,11 @@ public:
     double beta;
     int flag_spin_conserve;
 
+    // optional
+    // 0 [default] : (0, up), (1, up), ..., (0, down), (1, down), ...
+    // 1           : (0, up), (0, down), (1, up), (1, down), ...
+    int index_order;
+
     // file names
     std::string file_h0;
     std::string file_umat;
@@ -23,12 +28,12 @@ public:
     std::string file_retained;
 
     // GF
-    bool flag_gf;
+    int flag_gf;
     int n_w;
     std::string file_gf;
 
     // two-particle GF
-    bool flag_vx;
+    int flag_vx;
     int n_w2f;
     int n_w2b;
     std::string file_vx;

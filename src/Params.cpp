@@ -18,6 +18,9 @@ void Params::read(std::string &filename)
     beta = pt.get<double>("beta");
     flag_spin_conserve = pt.get<int>("flag_spin_conserve");
 
+    // optional
+    index_order = pt.get<int>("index_order", 0);
+
     // file names
     file_h0       = pt.get<std::string>("file_h0", "h0.in");
     file_umat     = pt.get<std::string>("file_umat", "umat.in");
@@ -41,6 +44,8 @@ void Params::print(){
     std::cout << " n_orb               = " << n_orb << std::endl;
     std::cout << " beta                = " << beta << std::endl;
     std::cout << " flag_spin_conserve  = " << flag_spin_conserve << std::endl;
+
+    std::cout << " index_order         = " << index_order << std::endl;
 
     std::cout << " file_h0             = " << file_h0 << std::endl;
     std::cout << " file_umat           = " << file_umat << std::endl;
