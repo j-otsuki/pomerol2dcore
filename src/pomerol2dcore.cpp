@@ -118,7 +118,9 @@ int main(int argc, char* argv[])
     std::string filein(argv[1]);
     Params prms;
     prms.read(filein);
-    prms.print();
+    if (!world.rank()) {
+        prms.print();
+    }
 
     // -----------------------------------------------------------------------
 
@@ -132,11 +134,13 @@ int main(int argc, char* argv[])
     IndexInfo.prepare();
 
     // Print which indices we have
-    if (!world.rank())
+    if (!world.rank()){
         L.printSites();
         IndexInfo.printIndices();
+    }
     // Save the total number of indices.
     ParticleIndex IndexSize = IndexInfo.getIndexSize();
+    assert(IndexSize == 2*prm.n_orb);
 
     // -----------------------------------------------------------------------
     // converter
@@ -146,7 +150,7 @@ int main(int argc, char* argv[])
         int spn;
         int orb;
     };
-    std::vector<converter_info> converter(2*prms.n_orb);
+    std::vector<converter_info> converter(IndexSize);
 
     for(ParticleIndex i=0; i<IndexSize; i++){
         IndexClassification::IndexInfo info = IndexInfo.getInfo(i);
@@ -168,12 +172,24 @@ int main(int argc, char* argv[])
     }
 
     if (!world.rank()){
-        for(int j=0; j<2*prms.n_orb; j++){
+        for(int j=0; j<converter.size(); j++){
             std::cout << "Converter " << j << " : ";
             std::cout << "Index " << converter[j].index;
             std::cout << ", orb " << converter[j].orb;
             std::cout << ", spn " << converter[j].spn << std::endl;
         }
+    }
+
+    // check if converter is properly set (no overlap in the indices)
+    {
+        // remove overlap in converter using std::set
+        std::set<ParticleIndex> set_converter;
+        for(auto info : converter){
+            assert(info.index >=0 && info.index<converter.size());
+            set_converter.insert(info.index);
+        }
+        // size is not reduced
+        assert(set_converter.size() == converter.size());
     }
 
     // -----------------------------------------------------------------------
@@ -264,7 +280,9 @@ int main(int argc, char* argv[])
     print_commutation(Symm.checkSymmetry(op_Lz), "Lz");
     print_commutation(Symm.checkSymmetry(op_Jz), "Jz");
 
-    INFO("Conserved quantum numbers " << Symm.getQuantumNumbers());
+    if (!world.rank()) {
+        INFO("Conserved quantum numbers " << Symm.getQuantumNumbers());
+    }
 
     // -----------------------------------------------------------------------
     print_section("States classification");
@@ -391,8 +409,8 @@ int main(int argc, char* argv[])
             wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
-        for(int i=0; i<2*prms.n_orb; i++){
-            for(int j=0; j<2*prms.n_orb; j++){
+        for(int i=0; i<IndexSize; i++){
+            for(int j=0; j<IndexSize; j++){
                 // skip if spin components of i and j are different
                 if(prms.flag_spin_conserve && converter[i].spn != converter[j].spn){
                     continue;
@@ -429,10 +447,10 @@ int main(int argc, char* argv[])
             wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
-        for(int i=0; i<2*prms.n_orb; i++){
-            for(int j=0; j<2*prms.n_orb; j++){
-                for(int k=0; k<2*prms.n_orb; k++){
-                    for(int l=0; l<2*prms.n_orb; l++){
+        for(int i=0; i<IndexSize; i++){
+            for(int j=0; j<IndexSize; j++){
+                for(int k=0; k<IndexSize; k++){
+                    for(int l=0; l<IndexSize; l++){
                         // TODO: check spin components
 
                         // TODO: check def of chi_{ijkl}
