@@ -88,7 +88,7 @@ class ThreeFreq
 public:
     ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3);
     unsigned int size(){
-        vec_freqs.size();
+        return vec_freqs.size();
     }
 
     struct three_freqs{
