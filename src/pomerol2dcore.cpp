@@ -5,6 +5,8 @@
 #include <time.h>
 #include <cassert>
 #include <memory>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "ReadWrite.h"
 #include "Params.h"
@@ -13,6 +15,14 @@
 using namespace Pomerol;
 
 typedef std::pair<double, QuantumNumbers> EigenSystem;
+
+
+void make_dir(std::string &dirname){
+    struct stat st;
+    if( stat(dirname.c_str(), &st) != 0 ) {
+        mkdir(dirname.c_str(), 0755);
+    }
+}
 
 
 // Small routine to make fancy screen output for text.
@@ -75,17 +85,41 @@ Lattice::Term* TwoBodyTerm ( const std::string& Label, MelemType Value, unsigned
 
 class ThreeFreq
 {
-private:
-    int n1, n2, n3;
 public:
-    ThreeFreq(int n1, int n2, int n3) : n1(n1), n2(n2), n3(n3) {}
-    int size(){
-        return n1*n2*n3;
+    ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3);
+    unsigned int size(){
+        vec_freqs.size();
     }
-    int operator()(int i, int j, int k){
-        return (i * n2 + j) * n3 + k;
+
+    struct three_freqs{
+        int w1, w2, w3;
+    };
+    struct three_freqs get_freqs(int i){
+        return vec_freqs[i];
     }
+private:
+    std::vector<three_freqs> vec_freqs;
 };
+
+ThreeFreq::ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3)
+{
+    // make frequency list
+    int size1 = negative1 ? 2*n1 : n1;
+    int size2 = negative2 ? 2*n2 : n2;
+    int size3 = negative3 ? 2*n3 : n3;
+    for (int i1 = 0; i1 < size1; i1++) {
+        for (int i2 = 0; i2 < size2; i2++) {
+            for (int i3 = 0; i3 < size3; i3++) {
+                three_freqs freqs = {
+                    negative1 ? i1 - n1 : i1,
+                    negative2 ? i2 - n2 : i2,
+                    negative3 ? i3 - n3 : i3,
+                };
+                vec_freqs.push_back(freqs);
+            }
+        }
+    }
+}
 
 
 /* Generic tips:
@@ -440,20 +474,28 @@ int main(int argc, char* argv[])
     if(prms.flag_vx){
         if(verbose) print_section("Two-particle Green functions");
 
-        std::unique_ptr<WriteDataFile> wdf;
-        if (!world.rank()){
-            wdf.reset(new WriteDataFile(prms.file_gf));
-        }
+//        std::unique_ptr<WriteDataFile> wdf;
+//        if (!world.rank()){
+//            wdf.reset(new WriteDataFile(prms.file_gf));
+//        }
 
-        for(int i=0; i<IndexSize; i++){
-            for(int j=0; j<IndexSize; j++){
-                for(int k=0; k<IndexSize; k++){
-                    for(int l=0; l<IndexSize; l++){
-                        // TODO: check spin components
+        for(int i1=0; i1<IndexSize; i1++){
+            for(int i2=0; i2<IndexSize; i2++){
+                for(int i3=0; i3<IndexSize; i3++){
+                    for(int i4=0; i4<IndexSize; i4++){
+                        // check spin components
+                        if(prms.flag_spin_conserve && converter[i1].spn + converter[i3].spn != converter[i2].spn + converter[i4].spn){
+                            continue;
+                        }
 
                         // TODO: check def of chi_{ijkl}
-                        TwoParticleGF Chi(S, H, *C[converter[i].index], *C[converter[j].index],
-                                *CX[converter[k].index], *CX[converter[l].index], rho);
+//                        TwoParticleGF Chi(S, H, *C[converter[i1].index], *C[converter[i2].index],
+//                                *CX[converter[i3].index], *CX[converter[i4].index], rho);
+                        TwoParticleGF Chi(S, H, *C[converter[i2].index],
+                                                *C[converter[i4].index],
+                                                *CX[converter[i1].index],
+                                                *CX[converter[i3].index],
+                                                rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
                         /** Minimal magnitude of the coefficient of a term to take it into account. */
@@ -470,22 +512,34 @@ int main(int argc, char* argv[])
 
                         time_temp = clock();
 
-                        ThreeFreq freq(prms.n_w2b, 2*prms.n_w2f, 2*prms.n_w2f);
-                        std::vector<ComplexType> x(freq.size());
+//                        ThreeFreq freq(prms.n_w2b, 2*prms.n_w2f, 2*prms.n_w2f);
+                        ThreeFreq Freq(prms.n_w2b, false, prms.n_w2f, true, prms.n_w2f, true);
+                        std::vector<ComplexType> x(Freq.size());
 
-                        for(int w1=0; w1<prms.n_w2b; w1++){
-                            for(int w2=0; w2<2*prms.n_w2f; w2++) {
-                                for (int w3=0; w3<2*prms.n_w2f; w3++) {
-                                    x[freq(w1,w2,w3)] = Chi(w1, w2 - prms.n_w2f, w3 - prms.n_w2f);
-                                }
-                            }
+                        for(int i=0; i<Freq.size(); i++){
+                            struct ThreeFreq::three_freqs freqs = Freq.get_freqs(i);
+                            int wb = freqs.w1;
+                            int wf1 = freqs.w2;
+                            int wf2 = freqs.w3;
+                            x[i] = -Chi(wb+wf1, wf2, wf1);
                         }
 
+//                        if (!world.rank()) {
+//                            std::stringstream ss;
+//                            ss << "# " << i1 << " " << i2 << " " << i3 << " " << i4;
+//                            wdf->write_str(ss.str());
+//                            wdf->write_vector(x);
+//                        }
                         if (!world.rank()) {
+                            // make directory
+                            make_dir(prms.dir_vx);
+                            // filename
                             std::stringstream ss;
-                            ss << "# " << i << " " << j << " " << k << " " << l;
-                            wdf->write_str(ss.str());
-                            wdf->write_vector(x);
+                            ss << prms.dir_vx << "/" << i1 << "_" << i2 << "_" << i3 << "_" << i4 << ".dat";
+                            std::string filename(ss.str());
+                            // fileout
+                            WriteDataFile wdf(filename);
+                            wdf.write_vector(x);
                         }
 
                         if(verbose) print_time(time_temp, "TwoParticleGF.getValues");

@@ -36,7 +36,8 @@ public:
     bool flag_vx;
     int n_w2f;
     int n_w2b;
-    std::string file_vx;
+//    std::string file_vx;
+    std::string dir_vx;
 
     // methods
     void read(std::string &filename);
