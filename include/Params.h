@@ -11,9 +11,9 @@
 class Params{
 public:
     // mandatory parameters
-    int n_orb;
+    unsigned short n_orb;
     double beta;
-    int flag_spin_conserve;
+    bool flag_spin_conserve;
 
     // optional
     // 0 [default] : (0, up), (1, up), ..., (0, down), (1, down), ...
@@ -28,12 +28,12 @@ public:
     std::string file_retained;
 
     // GF
-    int flag_gf;
-    int n_w;
+    bool flag_gf;
+    unsigned int n_w;
     std::string file_gf;
 
     // two-particle GF
-    int flag_vx;
+    bool flag_vx;
     int n_w2f;
     int n_w2b;
     std::string file_vx;

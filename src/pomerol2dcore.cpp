@@ -49,8 +49,8 @@ void print_commutation(bool if_commute, const std::string &op)
 
 Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short spin1, unsigned short spin2 )
 {
-    Lattice::Term *T = new Lattice::Term(2);
-    bool Operators[2]          = { 1, 0 };
+    auto *T = new Lattice::Term(2);
+    bool Operators[2]          = { true, false };
     std::string Labels[2]      = { Label, Label };
     unsigned short Spins[2]    = { spin1, spin2 };
     unsigned short Orbitals[2] = { orbital1, orbital2 };
@@ -65,8 +65,8 @@ Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned
 
 Lattice::Term* TwoBodyTerm ( const std::string& Label, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short orbital3, unsigned short orbital4, unsigned short spin1, unsigned short spin2, unsigned short spin3, unsigned short spin4 )
 {
-    Lattice::Term *T = new Lattice::Term(4);
-    bool Operators[4]          =      { 1,     1,     0,     0     };
+    auto *T = new Lattice::Term(4);
+    bool Operators[4]          =      { true,  true,  false, false };
     std::string Labels[4]      =      { Label, Label, Label, Label };
     unsigned short Spins[4]    =      { spin1, spin2, spin4, spin3 };
     unsigned short Orbitals[4] =      { orbital1, orbital2, orbital4, orbital3 };
@@ -140,22 +140,22 @@ int main(int argc, char* argv[])
     }
     // Save the total number of indices.
     ParticleIndex IndexSize = IndexInfo.getIndexSize();
-    assert(IndexSize == 2*prm.n_orb);
+    assert(IndexSize == 2*prms.n_orb);
 
     // -----------------------------------------------------------------------
     // converter
 
     struct converter_info{
         ParticleIndex index;
-        int spn;
-        int orb;
+        unsigned short spn;
+        unsigned short orb;
     };
     std::vector<converter_info> converter(IndexSize);
 
     for(ParticleIndex i=0; i<IndexSize; i++){
         IndexClassification::IndexInfo info = IndexInfo.getInfo(i);
-        int spn = info.Spin;
-        int orb = info.Orbital;
+        unsigned short spn = info.Spin;
+        unsigned short orb = info.Orbital;
 
         int j;  // converter index
         if(prms.index_order==0){
@@ -199,10 +199,10 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_h0, 2, 1);
         while( rdf.read_line() ){
-            int s1 = converter[rdf.get_index(0)].spn;
-            int o1 = converter[rdf.get_index(0)].orb;
-            int s2 = converter[rdf.get_index(1)].spn;
-            int o2 = converter[rdf.get_index(1)].orb;
+            unsigned short s1 = converter[rdf.get_index(0)].spn;
+            unsigned short o1 = converter[rdf.get_index(0)].orb;
+            unsigned short s2 = converter[rdf.get_index(1)].spn;
+            unsigned short o2 = converter[rdf.get_index(1)].orb;
             double val = rdf.get_val(0);
             // c^+_{o1,s1} c_{o2,s2}
             L.addTerm(OneBodyTerm("A", val, o1, o2, s1, s2));
@@ -213,14 +213,14 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_umat, 4, 1);
         while( rdf.read_line() ){
-            int s1 = converter[rdf.get_index(0)].spn;
-            int o1 = converter[rdf.get_index(0)].orb;
-            int s2 = converter[rdf.get_index(1)].spn;
-            int o2 = converter[rdf.get_index(1)].orb;
-            int s3 = converter[rdf.get_index(2)].spn;
-            int o3 = converter[rdf.get_index(2)].orb;
-            int s4 = converter[rdf.get_index(3)].spn;
-            int o4 = converter[rdf.get_index(3)].orb;
+            unsigned short s1 = converter[rdf.get_index(0)].spn;
+            unsigned short o1 = converter[rdf.get_index(0)].orb;
+            unsigned short s2 = converter[rdf.get_index(1)].spn;
+            unsigned short o2 = converter[rdf.get_index(1)].orb;
+            unsigned short s3 = converter[rdf.get_index(2)].spn;
+            unsigned short o3 = converter[rdf.get_index(2)].orb;
+            unsigned short s4 = converter[rdf.get_index(3)].spn;
+            unsigned short o4 = converter[rdf.get_index(3)].orb;
             double val = rdf.get_val(0);
             // (1/2) U c^+_{o1,s1} c^+_{o2,s2} c_{o4,s4} c_{o3,s3}
             L.addTerm(TwoBodyTerm("A", val/2., o1, o2, o3, o4, s1, s2, s3, s4));
@@ -324,20 +324,20 @@ int main(int argc, char* argv[])
         // create a list of pairs of eigenvalue and quantum numers
         std::vector<EigenSystem> eigen;
         for(BlockNumber i=0; i<S.NumberOfBlocks(); i++){
-            HamiltonianPart H_part = H.getPart(i);
+            const HamiltonianPart &H_part = H.getPart(i);
             // INFO(H_part.getQuantumNumbers());
             // INFO(H_part.getEigenValues());
             QuantumNumbers q = H_part.getQuantumNumbers();
             for(InnerQuantumState j=0; j<H_part.getSize(); j++){
-                eigen.push_back( std::make_pair( H_part.getEigenValue(j), q ) );
+                eigen.emplace_back( std::make_pair( H_part.getEigenValue(j), q ) );
             }
         }
         // sort eigenvalues in ascending order
         std::sort(eigen.begin(), eigen.end());
         // print all eigenvalues and corresponding quantum numbers
         std::ofstream fout(prms.file_eigen);
-        for(int i=0; i<eigen.size(); i++)
-            fout << eigen[i].first << "  " << eigen[i].second << std::endl;
+        for( const auto &eig : eigen )
+            fout << eig.first << "  " << eig.second << std::endl;
         fout.close();
         // fprint_eigen(eigen);
     }

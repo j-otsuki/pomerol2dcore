@@ -26,12 +26,12 @@ class ReadDataFile
 {
 private:
     std::ifstream ifs;
-    int n_index;
-    int n_val;
+    unsigned int n_index;
+    unsigned int n_val;
     std::vector<int> indices;
     std::vector<double> values;
 public:
-    ReadDataFile(std::string &filename, int n_index, int n_val);
+    ReadDataFile(std::string &filename, unsigned int n_index, unsigned int n_val);
     bool read_line();
     int get_index(int i);
     double get_val(int i);
@@ -47,7 +47,7 @@ private:
     std::ofstream ofs;
 
 public:
-    WriteDataFile(std::string &filename);
+    explicit WriteDataFile(std::string &filename);
 
     template<typename T>
     void write_vector(const std::vector<T> &v) {

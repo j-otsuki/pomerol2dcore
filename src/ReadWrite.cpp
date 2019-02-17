@@ -9,7 +9,7 @@
 #include <iomanip>
 
 
-ReadDataFile::ReadDataFile(std::string &filename, int n_index, int n_val) : n_index(n_index), n_val(n_val) {
+ReadDataFile::ReadDataFile(std::string &filename, unsigned int n_index, unsigned int n_val) : n_index(n_index), n_val(n_val) {
     ifs.open(filename);
     if( ifs.fail() ){
         std::cerr << "Failed in opening the file" << std::endl;

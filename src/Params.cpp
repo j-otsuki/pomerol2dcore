@@ -14,9 +14,9 @@ void Params::read(std::string &filename)
     boost::property_tree::read_ini(filename, pt);
 
     // mandatory parameters
-    n_orb = pt.get<int>("n_orb");
+    n_orb = pt.get<unsigned short>("n_orb");
     beta = pt.get<double>("beta");
-    flag_spin_conserve = pt.get<int>("flag_spin_conserve");
+    flag_spin_conserve = pt.get<bool>("flag_spin_conserve");
 
     // optional
     index_order = pt.get<int>("index_order", 0);
@@ -29,12 +29,12 @@ void Params::read(std::string &filename)
     file_retained = pt.get<std::string>("file_retained", "retained.dat");
 
     // GF
-    flag_gf = pt.get<int>("flag_gf", 1);
-    n_w = pt.get<int>("n_w", 1024);
+    flag_gf = pt.get<bool>("flag_gf", true);
+    n_w = pt.get<unsigned int>("n_w", 1024);
     file_gf = pt.get<std::string>("file_gf", "gf.dat");
 
     // two-particle GF
-    flag_vx = pt.get<int>("flag_vx", 0);
+    flag_vx = pt.get<bool>("flag_vx", false);
     n_w2f = pt.get<int>("n_w2f", 10);
     n_w2b = pt.get<int>("n_w2b", 1);
     file_vx = pt.get<std::string>("file_vx", "vx.dat");
