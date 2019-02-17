@@ -12,36 +12,30 @@
 
 using namespace Pomerol;
 
-boost::mpi::communicator world;
-
 typedef std::pair<double, QuantumNumbers> EigenSystem;
 
 
 // Small routine to make fancy screen output for text.
 void print_section (const std::string& str)
 {
-    if (!world.rank()) {
-        std::cout << std::string(str.size(),'=') << std::endl;
-        std::cout << str << std::endl;
-        std::cout << std::string(str.size(),'=') << std::endl;
-    }
+    std::cout << std::string(60, '=') << std::endl;
+    std::cout << str << std::endl;
+    std::cout << std::string(60, '=') << std::endl;
 }
 
 
 void print_time(clock_t start, const char *str)
 {
-    if (!world.rank()) {
-        std::cout << "#Time: "
-                  << (double)(clock()-start)/CLOCKS_PER_SEC << " sec"
-                  << " (" << str << ")"<< std::endl << std::flush;
-    }
+    std::cout << "#Time: "
+              << (double)(clock()-start)/CLOCKS_PER_SEC << " sec"
+              << " (" << str << ")"<< std::endl << std::flush;
 }
 
 
-void print_commutation(bool if_commute, const std::string &op)
+void print_commutation(bool if_commute, const std::string &op, bool verbose)
 {
     std::string str_commute(if_commute ? " = 0" : "!= 0");
-    if(!world.rank()){
+    if(verbose){
         std::cout << "[H, " << op << "] " << str_commute << std::endl;
     }
 }
@@ -109,7 +103,9 @@ int main(int argc, char* argv[])
 {
     clock_t time_start = clock(), time_temp;
     boost::mpi::environment MpiEnv(argc, argv);
-    world = boost::mpi::communicator();
+    boost::mpi::communicator world = boost::mpi::communicator();
+
+    bool verbose = world.rank() == 0;
 
     if(argc != 2){
         std::cerr << "Usage: " << argv[0] << " input_file_name" << std::endl;
@@ -118,7 +114,7 @@ int main(int argc, char* argv[])
     std::string filein(argv[1]);
     Params prms;
     prms.read(filein);
-    if (!world.rank()) {
+    if(verbose){
         prms.print();
     }
 
@@ -128,13 +124,13 @@ int main(int argc, char* argv[])
     L.addSite(new Lattice::Site("A", prms.n_orb, 2));
 
     // -----------------------------------------------------------------------
-    print_section("Indices");
+    if(verbose) print_section("Indices");
 
     IndexClassification IndexInfo(L.getSiteMap());
     IndexInfo.prepare();
 
     // Print which indices we have
-    if (!world.rank()){
+    if(verbose){
         L.printSites();
         IndexInfo.printIndices();
     }
@@ -171,7 +167,7 @@ int main(int argc, char* argv[])
         converter[j].orb = orb;
     }
 
-    if (!world.rank()){
+    if(verbose){
         for(int j=0; j<converter.size(); j++){
             std::cout << "Converter " << j << " : ";
             std::cout << "Index " << converter[j].index;
@@ -193,7 +189,7 @@ int main(int argc, char* argv[])
     }
 
     // -----------------------------------------------------------------------
-    print_section("Terms");
+    if(verbose) print_section("Terms");
 
     // set H_0
     {
@@ -229,7 +225,7 @@ int main(int argc, char* argv[])
 
     // -----------------------------------------------------------------------
     // Let us now print which sites and terms are defined.
-    if (!world.rank()) {
+    if(verbose){
         INFO("Terms with 2 operators");
         L.printTerms(2);
         INFO("Terms with 4 operators");
@@ -237,12 +233,12 @@ int main(int argc, char* argv[])
     };
 
     // -----------------------------------------------------------------------
-    print_section("Matrix element storage");
+    if(verbose) print_section("Matrix element storage");
 
     IndexHamiltonian Storage(&L,IndexInfo);
     Storage.prepare();
     // Print out the Hamiltonian.
-    if (!world.rank()) {
+    if(verbose){
         INFO("H =\n" << Storage);
     }
 
@@ -251,7 +247,7 @@ int main(int argc, char* argv[])
     Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
     Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
     Operator op_Jz = op_Sz + op_Lz;
-    if (!world.rank()) {
+    if(verbose){
         INFO("N  = \n" << op_N);
         INFO("Sz = \n" << op_Sz);
         INFO("Lz = \n" << op_Lz);
@@ -259,43 +255,45 @@ int main(int argc, char* argv[])
     }
 
     // -----------------------------------------------------------------------
-    print_section("Symmetry");
+    if(verbose) print_section("Symmetry");
 
     Symmetrizer Symm(IndexInfo, Storage);
     Symm.compute();
     // [H, N] and [H, Sz] are checked in compute() by default
 
     // compute [H, N] for printing
-    print_commutation(Storage.commutes(op_N), "N ");
+    print_commutation(Storage.commutes(op_N), "N ", verbose);
 
     // compute [H, Sz] for printing
     bool flag_sz_commute = Storage.commutes(op_Sz);
-    print_commutation(flag_sz_commute, "Sz");
+    print_commutation(flag_sz_commute, "Sz", verbose);
     if(!flag_sz_commute && prms.flag_spin_conserve){
         std::cerr << "ERROR: Sz does not commute with H, but flag_spin_conserve=true" << std::endl;
         exit(3);
     }
 
     // Perform additional symmetry check with Lz and Jz
-    print_commutation(Symm.checkSymmetry(op_Lz), "Lz");
-    print_commutation(Symm.checkSymmetry(op_Jz), "Jz");
+    print_commutation(Symm.checkSymmetry(op_Lz), "Lz", verbose);
+    print_commutation(Symm.checkSymmetry(op_Jz), "Jz", verbose);
 
-    if (!world.rank()) {
+    if(verbose){
         INFO("Conserved quantum numbers " << Symm.getQuantumNumbers());
     }
 
     // -----------------------------------------------------------------------
-    print_section("States classification");
+    if(verbose) print_section("States classification");
 
     StatesClassification S(IndexInfo,Symm);
     S.compute();
 
+    // fileout
     if (!world.rank()) {
         unsigned long n_states = S.getNumberOfStates();
-        INFO("Number of States is " << n_states);
         BlockNumber n_blocks = S.NumberOfBlocks();
-        INFO("Number of Blocks is " << n_blocks);
-        // fileout
+        if(verbose){
+            INFO("Number of States is " << n_states);
+            INFO("Number of Blocks is " << n_blocks);
+        }
         std::ofstream fout(prms.file_states);
         fout << "Number of States is " << n_states << std::endl;
         fout << "Number of Blocks is " << n_blocks << std::endl;
@@ -309,18 +307,19 @@ int main(int argc, char* argv[])
     world.barrier();
 
     // -----------------------------------------------------------------------
-    print_section("Hamiltonian");
+    if(verbose) print_section("Hamiltonian");
     time_temp = clock();
 
     Hamiltonian H(IndexInfo, Storage, S);
     H.prepare();
     H.compute(world);
 
-    if (!world.rank())
-        INFO("The value of ground energy is " << H.getGroundEnergy());
+    if(verbose){
+        INFO("Ground-state energy: " << H.getGroundEnergy());
+    }
 
+    // file out eigenvalues
     if (!world.rank()){
-        INFO("Eigenvalues");
         // create a list of pairs of eigenvalue and quantum numers
         std::vector<EigenSystem> eigen;
         for(BlockNumber i=0; i<S.NumberOfBlocks(); i++){
@@ -342,7 +341,7 @@ int main(int argc, char* argv[])
         // fprint_eigen(eigen);
     }
     world.barrier();
-    print_time(time_temp, "eigenstates");
+    if(verbose) print_time(time_temp, "eigenstates");
 
     // Finish if no physical quantities will be computed
     if( !prms.flag_gf && !prms.flag_vx) {
@@ -350,7 +349,7 @@ int main(int argc, char* argv[])
     }
 
     // -----------------------------------------------------------------------
-    print_section("Density Matrix");
+    if(verbose) print_section("Density Matrix");
 
     DensityMatrix rho(S, H, prms.beta);
     rho.prepare();
@@ -359,12 +358,11 @@ int main(int argc, char* argv[])
     /** Minimal magnitude of the weight (density matrix) to take it into account. */
     RealType DensityMatrixCutoff = 1e-10;
 
-    bool verbose = world.rank() == 0;
     // Truncate blocks that have only negligible contribute to GF and TwoParticleGF
     rho.truncateBlocks(DensityMatrixCutoff, verbose);
 
+    // file out retained states
     if (!world.rank()) {
-        // fileout
         std::ofstream fout(prms.file_retained);
         fout << "Block retained:\n(# size quantum_numbers)" << std::endl;
         for (BlockNumber i = 0; i < S.NumberOfBlocks(); i++) {
@@ -377,7 +375,7 @@ int main(int argc, char* argv[])
     world.barrier();
 
     // -----------------------------------------------------------------------
-    print_section("Creation/Annihilation operators");
+    if(verbose) print_section("Creation/Annihilation operators");
     time_temp = clock();
 
 //    std::vector <CreationOperator> CX;
@@ -397,11 +395,11 @@ int main(int argc, char* argv[])
     }
 
     world.barrier();
-    print_time(time_temp, "Creation/Annihilation op");
+    if(verbose) print_time(time_temp, "Creation/Annihilation op");
 
     // -----------------------------------------------------------------------
     if(prms.flag_gf){
-        print_section("Single-particle Green function");
+        if(verbose) print_section("Single-particle Green function");
         time_temp = clock();
 
         std::unique_ptr<WriteDataFile> wdf;
@@ -435,12 +433,12 @@ int main(int argc, char* argv[])
         }
 
         world.barrier();
-        print_time(time_temp, "GF");
+        if(verbose) print_time(time_temp, "GF");
     }
 
     // -----------------------------------------------------------------------
     if(prms.flag_vx){
-        print_section("Two-particle Green functions");
+        if(verbose) print_section("Two-particle Green functions");
 
         std::unique_ptr<WriteDataFile> wdf;
         if (!world.rank()){
@@ -468,7 +466,7 @@ int main(int argc, char* argv[])
                         std::vector <boost::tuple<ComplexType, ComplexType, ComplexType>> freqs_2pgf;
                         Chi.compute(false, freqs_2pgf, world);
                         world.barrier();
-                        print_time(time_temp, "TwoParticleGF.compute");
+                        if(verbose) print_time(time_temp, "TwoParticleGF.compute");
 
                         time_temp = clock();
 
@@ -490,12 +488,12 @@ int main(int argc, char* argv[])
                             wdf->write_vector(x);
                         }
 
-                        print_time(time_temp, "TwoParticleGF.getValues");
+                        if(verbose) print_time(time_temp, "TwoParticleGF.getValues");
                     }
                 }
             }
         }
     }
 
-    print_time(time_start, "Total");
+    if(verbose) print_time(time_start, "Total");
 }
