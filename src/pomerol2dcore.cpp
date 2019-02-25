@@ -1,3 +1,9 @@
+//
+// pomerol2dcore
+//
+// Copyright (C) 2019 Junya Otsuki
+//
+
 #include <pomerol.h>
 #include <fstream>
 #include <sstream>

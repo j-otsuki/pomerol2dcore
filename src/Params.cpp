@@ -1,5 +1,7 @@
 //
-// Created by otsuki on 2019/02/11.
+// pomerol2dcore
+//
+// Copyright (C) 2019 Junya Otsuki
 //
 
 #include "Params.h"

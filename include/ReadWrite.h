@@ -1,5 +1,7 @@
 //
-// Created by otsuki on 2019/02/10.
+// pomerol2dcore
+//
+// Copyright (C) 2019 Junya Otsuki
 //
 
 #ifndef POMEROL2DCORE_READWRITE_H
