@@ -454,7 +454,7 @@ int main(int argc, char* argv[])
                     continue;
                 }
 
-                GreensFunction GF(S,H,*C[converter[i].index],*CX[converter[j].index], rho);
+                GreensFunction GF(S,H,*C[i],*CX[j], rho);
                 GF.prepare();
                 GF.compute();
 
@@ -495,13 +495,7 @@ int main(int argc, char* argv[])
                         }
 
                         // TODO: check def of chi_{ijkl}
-//                        TwoParticleGF Chi(S, H, *C[converter[i1].index], *C[converter[i2].index],
-//                                *CX[converter[i3].index], *CX[converter[i4].index], rho);
-                        TwoParticleGF Chi(S, H, *C[converter[i2].index],
-                                                *C[converter[i4].index],
-                                                *CX[converter[i1].index],
-                                                *CX[converter[i3].index],
-                                                rho);
+                        TwoParticleGF Chi(S, H, *C[i2], *C[i4], *CX[i1], *CX[i3], rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
                         /** Minimal magnitude of the coefficient of a term to take it into account. */
