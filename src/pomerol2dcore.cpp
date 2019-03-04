@@ -490,12 +490,12 @@ int main(int argc, char* argv[])
                 for(int i3=0; i3<IndexSize; i3++){
                     for(int i4=0; i4<IndexSize; i4++){
                         // check spin components
-                        if(prms.flag_spin_conserve && converter[i1].spn + converter[i3].spn != converter[i2].spn + converter[i4].spn){
+                        if(prms.flag_spin_conserve && converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn){
                             continue;
                         }
 
                         // TODO: check def of chi_{ijkl}
-                        TwoParticleGF Chi(S, H, *C[i2], *C[i4], *CX[i1], *CX[i3], rho);
+                        TwoParticleGF Chi(S, H, *C[i2], *C[i3], *CX[i1], *CX[i4], rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
                         /** Minimal magnitude of the coefficient of a term to take it into account. */
