@@ -10,6 +10,7 @@ flag_gf = 1
 n_w = 20
 
 # Two-particle GF
-flag_vx = 0
+flag_vx = 1
 n_w2f = 2
 n_w2b = 1
+#file_freqs = freqs.in

@@ -39,6 +39,7 @@ void Params::read(std::string &filename)
     flag_vx = pt.get<bool>("flag_vx", false);
     n_w2f = pt.get<int>("n_w2f", 10);
     n_w2b = pt.get<int>("n_w2b", 1);
+    file_freqs = pt.get<std::string>("file_freqs", "");
 //    file_vx = pt.get<std::string>("file_vx", "vx.dat");
     dir_vx = pt.get<std::string>("dir_vx", "two_particle");
 }

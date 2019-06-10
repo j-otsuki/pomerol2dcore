@@ -92,7 +92,9 @@ Lattice::Term* TwoBodyTerm ( const std::string& Label, MelemType Value, unsigned
 class ThreeFreq
 {
 public:
-    ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3);
+    void box(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3);
+    void push_back(int wb, int wf1, int wf2);
+
     unsigned int size(){
         return vec_freqs.size();
     }
@@ -107,7 +109,7 @@ private:
     std::vector<three_freqs> vec_freqs;
 };
 
-ThreeFreq::ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3)
+void ThreeFreq::box(int n1, bool negative1, int n2, bool negative2, int n3, bool negative3)
 {
     // make frequency list
     int size1 = negative1 ? 2*n1 : n1;
@@ -125,6 +127,12 @@ ThreeFreq::ThreeFreq(int n1, bool negative1, int n2, bool negative2, int n3, boo
             }
         }
     }
+}
+
+void ThreeFreq::push_back(int wb, int wf1, int wf2)
+{
+    three_freqs freqs = {wb, wf1, wf2};
+    vec_freqs.push_back(freqs);
 }
 
 
@@ -270,7 +278,7 @@ int main(int argc, char* argv[])
         L.printTerms(2);
         INFO("Terms with 4 operators");
         L.printTerms(4);
-    };
+    }
 
     // -----------------------------------------------------------------------
     if(verbose) print_section("Matrix element storage");
@@ -485,6 +493,23 @@ int main(int argc, char* argv[])
 //            wdf.reset(new WriteDataFile(prms.file_gf));
 //        }
 
+        ThreeFreq Freq;
+        if(prms.file_freqs == ""){
+            std::cout << "Frequency points: box" << std::endl;
+            Freq.box(prms.n_w2b, false, prms.n_w2f, true, prms.n_w2f, true);
+        }
+        else{
+            std::cout << "Frequency points: file " << std::endl;
+            ReadDataFile rdf(prms.file_freqs, 3, 0);
+            while( rdf.read_line() ){
+                int wb = rdf.get_index(0);
+                int wf1 = rdf.get_index(1);
+                int wf2 = rdf.get_index(2);
+                Freq.push_back(wb, wf1, wf2);
+            }
+        }
+        std::cout << " # of sampling points = " << Freq.size() << std::endl;
+
         for(int i1=0; i1<IndexSize; i1++){
             for(int i2=0; i2<IndexSize; i2++){
                 for(int i3=0; i3<IndexSize; i3++){
@@ -512,10 +537,7 @@ int main(int argc, char* argv[])
 
                         time_temp = clock();
 
-//                        ThreeFreq freq(prms.n_w2b, 2*prms.n_w2f, 2*prms.n_w2f);
-                        ThreeFreq Freq(prms.n_w2b, false, prms.n_w2f, true, prms.n_w2f, true);
                         std::vector<ComplexType> x(Freq.size());
-
                         for(int i=0; i<Freq.size(); i++){
                             struct ThreeFreq::three_freqs freqs = Freq.get_freqs(i);
                             int wb = freqs.w1;

@@ -40,6 +40,7 @@ public:
     int n_w2b;
 //    std::string file_vx;
     std::string dir_vx;
+    std::string file_freqs;
 
     // methods
     void read(std::string &filename);
