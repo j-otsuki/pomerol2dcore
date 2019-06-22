@@ -18,10 +18,18 @@
 #include "Params.h"
 #include "OperatorPresetsExtra.h"
 
+#include "Config.h"
+
 using namespace Pomerol;
 
 typedef std::pair<double, QuantumNumbers> EigenSystem;
 
+
+void print_version(){
+  std::cout << "pomerol2dcore version "
+            << POMEROL2DCORE_VERSION_MAJOR << "."
+            << POMEROL2DCORE_VERSION_MINOR << std::endl;
+}
 
 void make_dir(std::string &dirname){
     struct stat st;
@@ -160,6 +168,10 @@ int main(int argc, char* argv[])
         exit(1);
     }
     std::string filein(argv[1]);
+    if(filein == "--version"){
+	print_version();
+	exit(0);
+    }
     Params prms;
     prms.read(filein);
     if(verbose){

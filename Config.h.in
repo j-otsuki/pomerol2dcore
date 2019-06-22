@@ -1,0 +1,2 @@
+#define POMEROL2DCORE_VERSION_MAJOR @pomerol2dcore_version_major@
+#define POMEROL2DCORE_VERSION_MINOR @pomerol2dcore_version_minor@

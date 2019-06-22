@@ -1,5 +1,15 @@
 cmake_minimum_required (VERSION 2.8.12)
-project (pomerol2triqs CXX)
+project (pomerol2dcore CXX)
+
+# set version number
+set(pomerol2dcore_version_major 1)
+set(pomerol2dcore_version_minor 0)
+message(STATUS "pomerol2dcore version ${pomerol2dcore_version_major}.${pomerol2dcore_version_minor}")
+configure_file (
+    "${PROJECT_SOURCE_DIR}/Config.h.in"
+    "${PROJECT_BINARY_DIR}/Config.h"
+)
+include_directories("${PROJECT_BINARY_DIR}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 #include(CommonDefs)
