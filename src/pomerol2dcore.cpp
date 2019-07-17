@@ -490,12 +490,13 @@ int main(int argc, char* argv[])
         }
     }
 
+    // converter from (i, j) to a 1D index
     std::map<std::pair<ParticleIndex, ParticleIndex>, int> conv_ij2n;
     {
         int n=0;
         for( auto info1 : converter )
             for (auto info2 : converter)
-                conv_ij2n[std::make_pair(info1.index, info2.index)] = ++n;
+                conv_ij2n[std::make_pair(info1.index, info2.index)] = n++;
     }
 
     world.barrier();
@@ -545,9 +546,48 @@ int main(int argc, char* argv[])
         if (verbose) print_section("Susceptibility");
         time_temp = clock();
 
+        for(int i1=0; i1<IndexSize; i1++) {
+            for (int i2 = 0; i2 < IndexSize; i2++) {
+                for (int i3 = 0; i3 < IndexSize; i3++) {
+                    for (int i4 = 0; i4 < IndexSize; i4++) {
+                        // check spin components
+                        if (prms.flag_spin_conserve &&
+                                converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn) {
+                            continue;
+                        }
 
+                        // TODO: check def of chi_{ijkl}
+                        int n_l = conv_ij2n[std::make_pair(i1, i2)];
+                        int n_r = conv_ij2n[std::make_pair(i3, i4)];
+                        Susceptibility Sus(S,H, *Q[n_l], *Q[n_r], rho);
+                        Sus.prepare();
+                        Sus.compute();
+                        Sus.subtractDisconnected(occup[n_l], occup[n_r]);
+
+                        std::vector<ComplexType> chi_iw(prms.n_wb);
+                        for(int iw=0; iw<prms.n_wb; iw++){
+                            chi_iw[iw] = Sus(iw);
+                        }
+
+                        if (!world.rank()) {
+                            // make directory
+                            make_dir(prms.dir_suscep);
+                            // filename
+                            std::stringstream ss;
+                            ss << prms.dir_suscep << "/" << i1 << "_" << i2 << "_" << i3 << "_" << i4 << ".dat";
+                            std::string filename(ss.str());
+                            // fileout
+                            WriteDataFile wdf(filename);
+                            wdf.write_vector(chi_iw);
+                        }
+                    }
+                }
+            }
+        }
+
+        world.barrier();
+        if(verbose) print_time(time_temp, "Susceptibility");
     }
-    exit(0);
 
     // -----------------------------------------------------------------------
     if(prms.flag_vx){
@@ -580,7 +620,8 @@ int main(int argc, char* argv[])
                 for(int i3=0; i3<IndexSize; i3++){
                     for(int i4=0; i4<IndexSize; i4++){
                         // check spin components
-                        if(prms.flag_spin_conserve && converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn){
+                        if(prms.flag_spin_conserve &&
+                                converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn){
                             continue;
                         }
 
