@@ -458,6 +458,50 @@ int main(int argc, char* argv[])
     if(verbose) print_time(time_temp, "Creation/Annihilation op");
 
     // -----------------------------------------------------------------------
+    if (verbose) print_section("Quadratic operators and their ensemble averages");
+    time_temp = clock();
+
+    // compute quadratic operators Q = c_i^+ c_j, and their ensemble averages
+    std::vector<std::unique_ptr<QuadraticOperator> > Q;
+    std::vector<std::unique_ptr<EnsembleAverage> > EA;
+    std::vector<ComplexType> occup;
+    for( auto info1 : converter ){
+        for( auto info2 : converter ) {
+            Q.emplace_back(new QuadraticOperator(IndexInfo, S, H, info1.index, info2.index));
+            Q.back()->prepare();
+            Q.back()->compute();
+            EA.emplace_back(new EnsembleAverage(S, H, *Q.back(), rho));
+            EA.back()->prepare();
+            occup.push_back(EA.back()->getResult());
+        }
+    }
+
+    // file out occupation-number matrix <c_i^+ c_j>
+    std::unique_ptr<WriteDataFile> wdf;
+    if (!world.rank()){
+        wdf.reset(new WriteDataFile(prms.file_occup));
+        for(int i=0; i<IndexSize; i++){
+            std::stringstream ss;
+            ss << "# (" << i << ", j)";
+            wdf->write_str(ss.str());
+            // view of i-th row of occupation-number matrix
+            auto occup_view = std::vector<ComplexType>(occup.begin()+IndexSize*i, occup.begin()+IndexSize*(i+1));
+            wdf->write_vector(occup_view);
+        }
+    }
+
+    std::map<std::pair<ParticleIndex, ParticleIndex>, int> conv_ij2n;
+    {
+        int n=0;
+        for( auto info1 : converter )
+            for (auto info2 : converter)
+                conv_ij2n[std::make_pair(info1.index, info2.index)] = ++n;
+    }
+
+    world.barrier();
+    if(verbose) print_time(time_temp, "Quadratic operators");
+
+    // -----------------------------------------------------------------------
     if(prms.flag_gf){
         if(verbose) print_section("Single-particle Green function");
         time_temp = clock();
@@ -478,8 +522,8 @@ int main(int argc, char* argv[])
                 GF.prepare();
                 GF.compute();
 
-                std::vector<ComplexType> giw(prms.n_w);
-                for(int iw=0; iw<prms.n_w; iw++){
+                std::vector<ComplexType> giw(prms.n_wf);
+                for(int iw=0; iw<prms.n_wf; iw++){
                     giw[iw] = GF(iw);
                 }
 
@@ -495,6 +539,15 @@ int main(int argc, char* argv[])
         world.barrier();
         if(verbose) print_time(time_temp, "GF");
     }
+
+    // -----------------------------------------------------------------------
+    if(prms.flag_suscep) {
+        if (verbose) print_section("Susceptibility");
+        time_temp = clock();
+
+
+    }
+    exit(0);
 
     // -----------------------------------------------------------------------
     if(prms.flag_vx){

@@ -29,11 +29,18 @@ void Params::read(std::string &filename)
     file_states   = pt.get<std::string>("file_states", "states.dat");
     file_eigen    = pt.get<std::string>("file_eigen", "eigenvalues.dat");
     file_retained = pt.get<std::string>("file_retained", "retained.dat");
+    file_occup    = pt.get<std::string>("file_occup", "occup.dat");
 
     // GF
     flag_gf = pt.get<bool>("flag_gf", true);
-    n_w = pt.get<unsigned int>("n_w", 1024);
+    n_wf = pt.get<unsigned int>("n_wf", 1024);
     file_gf = pt.get<std::string>("file_gf", "gf.dat");
+
+    // susceptibility
+    flag_suscep = pt.get<bool>("flag_suscep", false);
+    n_wb = pt.get<unsigned int>("n_wb", 100);
+//    file_suscep = pt.get<std::string>("file_suscep", "suscep.dat");
+    dir_suscep = pt.get<std::string>("dir_suscep", "susceptibility");
 
     // two-particle GF
     flag_vx = pt.get<bool>("flag_vx", false);
@@ -58,7 +65,7 @@ void Params::print(){
     std::cout << " file_retained       = " << file_retained << std::endl;
 
     std::cout << " flag_gf             = " << flag_gf << std::endl;
-    std::cout << " n_w                 = " << n_w << std::endl;
+    std::cout << " n_wf                = " << n_wf << std::endl;
     std::cout << " file_gf             = " << file_gf << std::endl;
 
     std::cout << " flag_vx             = " << flag_vx << std::endl;

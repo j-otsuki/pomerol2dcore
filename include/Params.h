@@ -28,11 +28,18 @@ public:
     std::string file_states;
     std::string file_eigen;
     std::string file_retained;
+    std::string file_occup;
 
     // GF
     bool flag_gf;
-    unsigned int n_w;
+    unsigned int n_wf;
     std::string file_gf;
+
+    // susceptibility
+    bool flag_suscep;
+    int n_wb;
+//    std::string file_suscep;
+    std::string dir_suscep;
 
     // two-particle GF
     bool flag_vx;
