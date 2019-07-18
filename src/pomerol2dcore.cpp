@@ -556,9 +556,9 @@ int main(int argc, char* argv[])
                             continue;
                         }
 
-                        // TODO: check def of chi_{ijkl}
+                        // < c_1^+ c_2 ; c_4^+ c_3 >
                         int n_l = conv_ij2n[std::make_pair(i1, i2)];
-                        int n_r = conv_ij2n[std::make_pair(i3, i4)];
+                        int n_r = conv_ij2n[std::make_pair(i4, i3)];
                         Susceptibility Sus(S,H, *Q[n_l], *Q[n_r], rho);
                         Sus.prepare();
                         Sus.compute();
@@ -625,7 +625,7 @@ int main(int argc, char* argv[])
                             continue;
                         }
 
-                        // TODO: check def of chi_{ijkl}
+                        // < c_1^+ ; c_2 ; c_4^+ ; c_3 >
                         TwoParticleGF Chi(S, H, *C[i2], *C[i3], *CX[i1], *CX[i4], rho);
                         /** A difference in energies with magnitude less than this value is treated as zero. */
                         Chi.ReduceResonanceTolerance = 1e-8;
