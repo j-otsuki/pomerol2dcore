@@ -490,15 +490,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // converter from (i, j) to a 1D index
-    std::map<std::pair<ParticleIndex, ParticleIndex>, int> conv_ij2n;
-    {
-        int n=0;
-        for( auto info1 : converter )
-            for (auto info2 : converter)
-                conv_ij2n[std::make_pair(info1.index, info2.index)] = n++;
-    }
-
     world.barrier();
     if(verbose) print_time(time_temp, "Quadratic operators");
 
@@ -557,8 +548,8 @@ int main(int argc, char* argv[])
                         }
 
                         // < c_1^+ c_2 ; c_4^+ c_3 >
-                        int n_l = conv_ij2n[std::make_pair(i1, i2)];
-                        int n_r = conv_ij2n[std::make_pair(i4, i3)];
+                        int n_l = i1*IndexSize + i2;
+                        int n_r = i4*IndexSize + i3;
                         Susceptibility Sus(S,H, *Q[n_l], *Q[n_r], rho);
                         Sus.prepare();
                         Sus.compute();
