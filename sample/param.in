@@ -1,5 +1,5 @@
-n_orb = 3
-beta = 10.9
+n_orb = 1
+beta = 10.
 flag_spin_conserve = 1
 
 file_h0 = h0.in
