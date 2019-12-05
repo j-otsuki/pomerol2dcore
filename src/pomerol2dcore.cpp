@@ -43,8 +43,7 @@ void make_dir(std::string &dirname){
 void print_section (const std::string& str)
 {
     std::cout << std::string(60, '=') << std::endl;
-    std::cout << str << std::endl;
-    std::cout << std::string(60, '=') << std::endl;
+    std::cout << "=== " << str << " " << std::string(60-5-str.length(), '=') << std::endl;
 }
 
 
