@@ -38,14 +38,12 @@ public:
     // susceptibility
     bool flag_suscep;
     int n_wb;
-//    std::string file_suscep;
     std::string dir_suscep;
 
     // two-particle GF
     bool flag_vx;
     int n_w2f;
     int n_w2b;
-//    std::string file_vx;
     std::string dir_vx;
     std::string file_freqs;
 
