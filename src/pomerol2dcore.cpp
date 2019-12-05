@@ -65,11 +65,11 @@ void print_commutation(bool if_commute, const std::string &op, bool verbose)
 }
 
 
-Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short spin1, unsigned short spin2 )
+Lattice::Term* OneBodyTerm ( const std::string& Label1, const std::string& Label2, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short spin1, unsigned short spin2 )
 {
     auto *T = new Lattice::Term(2);
     bool Operators[2]          = { true, false };
-    std::string Labels[2]      = { Label, Label };
+    std::string Labels[2]      = { Label1, Label2 };
     unsigned short Spins[2]    = { spin1, spin2 };
     unsigned short Orbitals[2] = { orbital1, orbital2 };
     T->OperatorSequence.assign(Operators,Operators+2);
@@ -78,6 +78,11 @@ Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned
     T->Spins.assign(Spins,Spins+2);
     T->Value = Value;
     return T;
+}
+
+Lattice::Term* OneBodyTerm ( const std::string& Label, MelemType Value, unsigned short orbital1, unsigned short orbital2, unsigned short spin1, unsigned short spin2 )
+{
+    return OneBodyTerm(Label, Label, Value, orbital1, orbital2, spin1, spin2);
 }
 
 
@@ -169,9 +174,14 @@ int main(int argc, char* argv[])
     }
     std::string filein(argv[1]);
     if(filein == "--version"){
-	print_version();
-	exit(0);
+        print_version();
+        exit(0);
     }
+    // TODO
+//    if(filein == "--help" || filein == "-h"){
+//        Params.print_parameters();
+//        exit(0);
+//    }
     Params prms;
     prms.read(filein);
     if(verbose){
@@ -180,7 +190,6 @@ int main(int argc, char* argv[])
 
     // -----------------------------------------------------------------------
 
-    unsigned int n_tot = prms.n_orb + prms.n_bath;
     Lattice L;
     L.addSite(new Lattice::Site("A", prms.n_orb, 2));  // impurity site
     L.addSite(new Lattice::Site("B", prms.n_bath, 2));  // bath sites
@@ -198,19 +207,22 @@ int main(int argc, char* argv[])
     }
     // Save the total number of indices.
     ParticleIndex IndexSize = IndexInfo.getIndexSize();
-//    assert(IndexSize == 2*prms.n_orb);
-    assert(IndexSize == 2*n_tot);
+    assert( IndexSize == 2*(prms.n_orb+prms.n_bath) );
+
+    // The total number of indices for the impurity site
+    ParticleIndex IndexSize_imp = 2*prms.n_orb;
 
     // -----------------------------------------------------------------------
     // converter
 
-    struct converter_info{
+    struct ConverterInfo{
         ParticleIndex index;
         std::string site;
         unsigned short spn;
         unsigned short orb;
     };
-    std::vector<converter_info> converter(IndexSize);
+    std::vector<ConverterInfo> converter(IndexSize);  // for all sites (imp + bath)
+    std::vector<ConverterInfo> converter_imp;  // for imp site
 
     for(ParticleIndex i=0; i<IndexSize; i++){
         IndexClassification::IndexInfo info = IndexInfo.getInfo(i);
@@ -261,6 +273,12 @@ int main(int argc, char* argv[])
         assert(set_converter.size() == converter.size());
     }
 
+    // set up converter_imp
+    for(auto info : converter){
+        if(info.site == "A")  converter_imp.push_back(info);
+    }
+    assert(converter_imp.size() == IndexSize_imp);
+
     // -----------------------------------------------------------------------
     if(verbose) print_section("Terms");
 
@@ -268,13 +286,15 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_h0, 2, 1);
         while( rdf.read_line() ){
+            std::string site1 = converter[rdf.get_index(0)].site;
             unsigned short s1 = converter[rdf.get_index(0)].spn;
             unsigned short o1 = converter[rdf.get_index(0)].orb;
+            std::string site2 = converter[rdf.get_index(1)].site;
             unsigned short s2 = converter[rdf.get_index(1)].spn;
             unsigned short o2 = converter[rdf.get_index(1)].orb;
             double val = rdf.get_val(0);
-            // c^+_{o1,s1} c_{o2,s2}
-            L.addTerm(OneBodyTerm("A", val, o1, o2, s1, s2));
+            // c^+_{i1,o1,s1} c_{i2,o2,s2}
+            L.addTerm(OneBodyTerm(site1, site2, val, o1, o2, s1, s2));
         }
     }
 
@@ -282,15 +302,24 @@ int main(int argc, char* argv[])
     {
         ReadDataFile rdf(prms.file_umat, 4, 1);
         while( rdf.read_line() ){
+            std::string site1 = converter[rdf.get_index(0)].site;
             unsigned short s1 = converter[rdf.get_index(0)].spn;
             unsigned short o1 = converter[rdf.get_index(0)].orb;
+            std::string site2 = converter[rdf.get_index(1)].site;
             unsigned short s2 = converter[rdf.get_index(1)].spn;
             unsigned short o2 = converter[rdf.get_index(1)].orb;
+            std::string site3 = converter[rdf.get_index(2)].site;
             unsigned short s3 = converter[rdf.get_index(2)].spn;
             unsigned short o3 = converter[rdf.get_index(2)].orb;
+            std::string site4 = converter[rdf.get_index(3)].site;
             unsigned short s4 = converter[rdf.get_index(3)].spn;
             unsigned short o4 = converter[rdf.get_index(3)].orb;
             double val = rdf.get_val(0);
+
+            if( site1 != "A" || site2 != "A" || site3 != "A" || site4 != "A" ){
+                std::cerr << "TwoBodyTerm can be set only on impurity site" << std::endl;
+                exit(4);
+            }
             // (1/2) U c^+_{o1,s1} c^+_{o2,s2} c_{o4,s4} c_{o3,s3}
             L.addTerm(TwoBodyTerm("A", val/2., o1, o2, o3, o4, s1, s2, s3, s4));
         }
@@ -453,7 +482,7 @@ int main(int argc, char* argv[])
 
 //    std::vector <CreationOperator> CX;
     std::vector<std::unique_ptr<CreationOperator> > CX;
-    for( auto info : converter ){
+    for( auto info : converter_imp ){
         CX.emplace_back(new CreationOperator(IndexInfo, S, H, info.index));
         CX.back()->prepare();
         CX.back()->compute();
@@ -461,7 +490,7 @@ int main(int argc, char* argv[])
 
 //    std::vector <AnnihilationOperator> C;
     std::vector<std::unique_ptr<AnnihilationOperator> > C;
-    for( auto info : converter ){
+    for( auto info : converter_imp ){
         C.emplace_back(new AnnihilationOperator(IndexInfo, S, H, info.index));
         C.back()->prepare();
         C.back()->compute();
@@ -478,8 +507,8 @@ int main(int argc, char* argv[])
     std::vector<std::unique_ptr<QuadraticOperator> > Q;
     std::vector<std::unique_ptr<EnsembleAverage> > EA;
     std::vector<ComplexType> occup;
-    for( auto info1 : converter ){
-        for( auto info2 : converter ) {
+    for( auto info1 : converter_imp ){
+        for( auto info2 : converter_imp ) {
             Q.emplace_back(new QuadraticOperator(IndexInfo, S, H, info1.index, info2.index));
             Q.back()->prepare();
             Q.back()->compute();
@@ -493,12 +522,12 @@ int main(int argc, char* argv[])
     std::unique_ptr<WriteDataFile> wdf;
     if (!world.rank()){
         wdf.reset(new WriteDataFile(prms.file_occup));
-        for(int i=0; i<IndexSize; i++){
+        for(int i=0; i<IndexSize_imp; i++){
             std::stringstream ss;
             ss << "# (" << i << ", j)";
             wdf->write_str(ss.str());
             // view of i-th row of occupation-number matrix
-            auto occup_view = std::vector<ComplexType>(occup.begin()+IndexSize*i, occup.begin()+IndexSize*(i+1));
+            auto occup_view = std::vector<ComplexType>(occup.begin()+IndexSize_imp*i, occup.begin()+IndexSize_imp*(i+1));
             wdf->write_vector(occup_view);
         }
     }
@@ -516,10 +545,10 @@ int main(int argc, char* argv[])
             wdf.reset(new WriteDataFile(prms.file_gf));
         }
 
-        for(int i=0; i<IndexSize; i++){
-            for(int j=0; j<IndexSize; j++){
+        for(int i=0; i<converter_imp.size(); i++){
+            for(int j=0; j<converter_imp.size(); j++){
                 // skip if spin components of i and j are different
-                if(prms.flag_spin_conserve && converter[i].spn != converter[j].spn){
+                if(prms.flag_spin_conserve && converter_imp[i].spn != converter_imp[j].spn){
                     continue;
                 }
 
@@ -550,19 +579,19 @@ int main(int argc, char* argv[])
         if (verbose) print_section("Susceptibility");
         time_temp = clock();
 
-        for(int i1=0; i1<IndexSize; i1++) {
-            for (int i2 = 0; i2 < IndexSize; i2++) {
-                for (int i3 = 0; i3 < IndexSize; i3++) {
-                    for (int i4 = 0; i4 < IndexSize; i4++) {
+        for(int i1=0; i1<IndexSize_imp; i1++) {
+            for (int i2 = 0; i2 < IndexSize_imp; i2++) {
+                for (int i3 = 0; i3 < IndexSize_imp; i3++) {
+                    for (int i4 = 0; i4 < IndexSize_imp; i4++) {
                         // check spin components
                         if (prms.flag_spin_conserve &&
-                                converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn) {
+                                converter_imp[i1].spn + converter_imp[i4].spn != converter_imp[i2].spn + converter_imp[i3].spn) {
                             continue;
                         }
 
                         // < c_1^+ c_2 ; c_4^+ c_3 >
-                        int n_l = i1*IndexSize + i2;
-                        int n_r = i4*IndexSize + i3;
+                        int n_l = i1*IndexSize_imp + i2;
+                        int n_r = i4*IndexSize_imp + i3;
                         Susceptibility Sus(S,H, *Q[n_l], *Q[n_r], rho);
                         Sus.prepare();
                         Sus.compute();
@@ -619,13 +648,13 @@ int main(int argc, char* argv[])
         }
         std::cout << " # of sampling points = " << Freq.size() << std::endl;
 
-        for(int i1=0; i1<IndexSize; i1++){
-            for(int i2=0; i2<IndexSize; i2++){
-                for(int i3=0; i3<IndexSize; i3++){
-                    for(int i4=0; i4<IndexSize; i4++){
+        for(int i1=0; i1<IndexSize_imp; i1++){
+            for(int i2=0; i2<IndexSize_imp; i2++){
+                for(int i3=0; i3<IndexSize_imp; i3++){
+                    for(int i4=0; i4<IndexSize_imp; i4++){
                         // check spin components
                         if(prms.flag_spin_conserve &&
-                                converter[i1].spn + converter[i4].spn != converter[i2].spn + converter[i3].spn){
+                                converter_imp[i1].spn + converter_imp[i4].spn != converter_imp[i2].spn + converter_imp[i3].spn){
                             continue;
                         }
 
