@@ -180,8 +180,10 @@ int main(int argc, char* argv[])
 
     // -----------------------------------------------------------------------
 
+    unsigned int n_tot = prms.n_orb + prms.n_bath;
     Lattice L;
-    L.addSite(new Lattice::Site("A", prms.n_orb, 2));
+    L.addSite(new Lattice::Site("A", prms.n_orb, 2));  // impurity site
+    L.addSite(new Lattice::Site("B", prms.n_bath, 2));  // bath sites
 
     // -----------------------------------------------------------------------
     if(verbose) print_section("Indices");
@@ -196,13 +198,15 @@ int main(int argc, char* argv[])
     }
     // Save the total number of indices.
     ParticleIndex IndexSize = IndexInfo.getIndexSize();
-    assert(IndexSize == 2*prms.n_orb);
+//    assert(IndexSize == 2*prms.n_orb);
+    assert(IndexSize == 2*n_tot);
 
     // -----------------------------------------------------------------------
     // converter
 
     struct converter_info{
         ParticleIndex index;
+        std::string site;
         unsigned short spn;
         unsigned short orb;
     };
@@ -210,19 +214,27 @@ int main(int argc, char* argv[])
 
     for(ParticleIndex i=0; i<IndexSize; i++){
         IndexClassification::IndexInfo info = IndexInfo.getInfo(i);
+        std::string site = info.SiteLabel;
         unsigned short spn = info.Spin;
         unsigned short orb = info.Orbital;
 
-        int j;  // converter index
+        int j = 0;  // converter index
+        int n_orb = prms.n_orb;
+        if(site == "B"){  // site "B" comes after site "A"
+            j = 2*prms.n_orb;
+            n_orb = prms.n_bath;
+        }
+
         if(prms.index_order==0){
             // (0, up), (1, up), ..., (0, down), (1, down), ...
-            j = prms.n_orb * spn + orb;
+            j += n_orb * spn + orb;
         }
         else{
             // (0, up), (0, down), (1, up), (1, down), ...
-            j = 2 * orb + spn;
+            j += 2 * orb + spn;
         }
         converter[j].index = i;
+        converter[j].site = site;
         converter[j].spn = spn;
         converter[j].orb = orb;
     }
@@ -231,6 +243,7 @@ int main(int argc, char* argv[])
         for(int j=0; j<converter.size(); j++){
             std::cout << "Converter " << j << " : ";
             std::cout << "Index " << converter[j].index;
+            std::cout << ", site " << converter[j].site;
             std::cout << ", orb " << converter[j].orb;
             std::cout << ", spn " << converter[j].spn << std::endl;
         }

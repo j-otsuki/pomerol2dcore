@@ -18,6 +18,7 @@ public:
     bool flag_spin_conserve;
 
     // optional
+    unsigned int n_bath;
     // 0 [default] : (0, up), (1, up), ..., (0, down), (1, down), ...
     // 1           : (0, up), (0, down), (1, up), (1, down), ...
     int index_order;

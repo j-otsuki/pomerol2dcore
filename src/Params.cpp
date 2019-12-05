@@ -21,6 +21,7 @@ void Params::read(std::string &filename)
     flag_spin_conserve = pt.get<bool>("flag_spin_conserve");
 
     // optional
+    n_bath = pt.get<unsigned int>("n_bath", 0);
     index_order = pt.get<int>("index_order", 0);
 
     // file names
@@ -57,6 +58,7 @@ void Params::print()
     std::cout << " flag_spin_conserve  = " << flag_spin_conserve << std::endl;
 
     std::cout << " -------------------------------- Optional" << std::endl;
+    std::cout << " n_bath              = " << n_bath << std::endl;
     std::cout << " index_order         = " << index_order << std::endl;
 
     std::cout << " -------------------------------- File names" << std::endl;
