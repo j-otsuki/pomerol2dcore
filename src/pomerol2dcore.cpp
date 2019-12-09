@@ -345,8 +345,8 @@ int main(int argc, char* argv[])
 
     // define operators for checking symmetry
     OperatorPresets::N op_N(IndexSize);
-    Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A");
-    Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A");
+    Operator op_Sz = OperatorPresets::SzSite(IndexInfo, "A") + OperatorPresets::SzSite(IndexInfo, "B");
+    Operator op_Lz = OperatorPresets::LzSite(IndexInfo, "A") + OperatorPresets::LzSite(IndexInfo, "B");
     Operator op_Jz = op_Sz + op_Lz;
     if(verbose){
         INFO("N  = \n" << op_N);
