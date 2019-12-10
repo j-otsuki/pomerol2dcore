@@ -578,12 +578,12 @@ int main(int argc, char* argv[])
         if (verbose) print_section("Susceptibility");
         time_temp = clock();
 
-        for(int i1=0; i1<IndexSize_imp; i1++) {
-            for (int i2 = 0; i2 < IndexSize_imp; i2++) {
-                for (int i3 = 0; i3 < IndexSize_imp; i3++) {
-                    for (int i4 = 0; i4 < IndexSize_imp; i4++) {
+        for(int i1=0; i1<IndexSize_imp; i1++){
+            for(int i2=0; i2<IndexSize_imp; i2++){
+                for(int i3=0; i3<IndexSize_imp; i3++){
+                    for(int i4=0; i4<IndexSize_imp; i4++){
                         // check spin components
-                        if (prms.flag_spin_conserve &&
+                        if(prms.flag_spin_conserve &&
                                 converter_imp[i1].spn + converter_imp[i4].spn != converter_imp[i2].spn + converter_imp[i3].spn) {
                             continue;
                         }
