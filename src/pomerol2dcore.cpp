@@ -173,8 +173,8 @@ int main(int argc, char* argv[])
     }
     std::string filein(argv[1]);
     if(filein == "--version"){
-        print_version();
-        exit(0);
+        if(world.rank() == 0)  print_version();
+        return 0;
     }
     // TODO
 //    if(filein == "--help" || filein == "-h"){
@@ -710,4 +710,5 @@ int main(int argc, char* argv[])
     }
 
     if(verbose) print_time(time_start, "Total");
+    return 0;
 }
