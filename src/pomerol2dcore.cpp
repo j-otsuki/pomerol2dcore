@@ -164,7 +164,7 @@ void cast_melem(std::complex<double> val, double &melem, double tol)
         melem = real(val);
     }
 }
-std::complex<double> cast_melem(std::complex<double> val, std::complex<double> &melem, double tol)
+void cast_melem(std::complex<double> val, std::complex<double> &melem, double tol)
 {
     melem = val;
 }
