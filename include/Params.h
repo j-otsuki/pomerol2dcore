@@ -22,6 +22,7 @@ public:
     // 0 [default] : (0, up), (1, up), ..., (0, down), (1, down), ...
     // 1           : (0, up), (0, down), (1, up), (1, down), ...
     int index_order;
+    double tol_real;
 
     // file names
     std::string file_h0;
