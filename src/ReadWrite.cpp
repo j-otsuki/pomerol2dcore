@@ -33,7 +33,13 @@ bool ReadDataFile::read_line() {
         while( std::getline(ss, word, ' ') ){
             words.push_back(word);
         }
-        assert( words.size() == n_index + n_val );
+        if ( words.size() != n_index + n_val ) {
+		std::cerr << "words.size() != n_index + n_val" << std::endl;
+		std::cerr << "words.size(): " << words.size() << std::endl;
+		std::cerr << "n_index: " << n_index << std::endl;
+		std::cerr << "n_val: " << n_val << std::endl;
+		exit(1);
+	}
         // set indices
         for(int i=0; i<n_index; i++){
             indices[i] = std::stoi(words[i]);

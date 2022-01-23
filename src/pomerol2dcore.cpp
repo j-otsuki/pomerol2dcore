@@ -151,7 +151,7 @@ void ThreeFreq::push_back(int wb, int wf1, int wf2)
 // assign val to melem with casting the type of val
 void cast_melem(std::complex<double> val, double &melem)
 {
-    if (imag(val) > 1.0e-14){
+    if (imag(val) > 1.0e-10){
         std::cerr << "ERROR: COMPLEX MATRIX ELEMENT"
                   << std::endl
                   << "The solver accepts only real values for matrix elements. "
@@ -306,6 +306,7 @@ int main(int argc, char* argv[])
     // set H_0
     {
         ReadDataFile rdf(prms.file_h0, 2, 2);
+	std::cout << "Reading " << prms.file_h0 << "... " << std::endl;
         while( rdf.read_line() ){
             std::string site1 = converter[rdf.get_index(0)].site;
             unsigned short s1 = converter[rdf.get_index(0)].spn;
@@ -319,6 +320,7 @@ int main(int argc, char* argv[])
             // c^+_{i1,o1,s1} c_{i2,o2,s2}
             L.addTerm(OneBodyTerm(site1, site2, melem, o1, o2, s1, s2));
         }
+	std::cout << "Done" << std::endl << std::endl;
     }
 
     // set U_{ijkl}
