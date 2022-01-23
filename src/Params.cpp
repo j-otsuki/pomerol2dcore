@@ -23,6 +23,7 @@ void Params::read(std::string &filename)
     // optional
     n_bath = pt.get<unsigned int>("n_bath", 0);
     index_order = pt.get<int>("index_order", 0);
+    tol_real = pt.get<double>("tol_real", 1e-12);
 
     // file names
     file_h0       = pt.get<std::string>("file_h0", "h0.in");
@@ -60,6 +61,7 @@ void Params::print()
     std::cout << " -------------------------------- Optional" << std::endl;
     std::cout << " n_bath              = " << n_bath << std::endl;
     std::cout << " index_order         = " << index_order << std::endl;
+    std::cout << " tol_real            = " << tol_real << std::endl;
 
     std::cout << " -------------------------------- File names" << std::endl;
     std::cout << " file_h0             = " << file_h0 << std::endl;

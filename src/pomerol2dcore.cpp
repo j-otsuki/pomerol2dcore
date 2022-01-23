@@ -149,9 +149,9 @@ void ThreeFreq::push_back(int wb, int wf1, int wf2)
 
 
 // assign val to melem with casting the type of val
-void cast_melem(std::complex<double> val, double &melem)
+void cast_melem(std::complex<double> val, double &melem, double tol)
 {
-    if (imag(val) > 1.0e-10){
+    if (imag(val) > tol){
         std::cerr << "ERROR: COMPLEX MATRIX ELEMENT"
                   << std::endl
                   << "The solver accepts only real values for matrix elements. "
@@ -164,7 +164,7 @@ void cast_melem(std::complex<double> val, double &melem)
         melem = real(val);
     }
 }
-std::complex<double> cast_melem(std::complex<double> val, std::complex<double> &melem)
+void cast_melem(std::complex<double> val, std::complex<double> &melem, double tol)
 {
     melem = val;
 }
@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
             unsigned short s2 = converter[rdf.get_index(1)].spn;
             unsigned short o2 = converter[rdf.get_index(1)].orb;
             MelemType melem;
-            cast_melem(std::complex<double>(rdf.get_val(0), rdf.get_val(1)), melem);
+            cast_melem(std::complex<double>(rdf.get_val(0), rdf.get_val(1)), melem, prms.tol_real);
 
             // c^+_{i1,o1,s1} c_{i2,o2,s2}
             L.addTerm(OneBodyTerm(site1, site2, melem, o1, o2, s1, s2));
@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
             unsigned short s4 = converter[rdf.get_index(3)].spn;
             unsigned short o4 = converter[rdf.get_index(3)].orb;
             MelemType melem;
-            cast_melem(std::complex<double>(rdf.get_val(0), rdf.get_val(1)), melem);
+            cast_melem(std::complex<double>(rdf.get_val(0), rdf.get_val(1)), melem, prms.tol_real);
 
             if( site1 != "A" || site2 != "A" || site3 != "A" || site4 != "A" ){
                 std::cerr << "TwoBodyTerm can be set only on impurity site" << std::endl;
@@ -486,7 +486,7 @@ int main(int argc, char* argv[])
     /** Minimal magnitude of the weight (density matrix) to take it into account. */
     RealType DensityMatrixCutoff = 1e-10;
 
-    // Truncate blocks that have only negligible contribute to GF and TwoParticleGF
+    // Truncate blocks that have only negligible contribution to GF and TwoParticleGF
     rho.truncateBlocks(DensityMatrixCutoff, verbose);
 
     // file out retained states
