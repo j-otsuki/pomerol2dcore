@@ -27,6 +27,8 @@ find_package(pomerol)
 message(STATUS "Pomerol includes : ${pomerol_INCLUDE_DIRS}")
 message(STATUS "Pomerol libraries : ${pomerol_LIBRARIES}")
 
+find_package(Boost COMPONENTS mpi serialization)
+
 include_directories(${pomerol_INCLUDE_DIRS})
 include_directories(include)
 
