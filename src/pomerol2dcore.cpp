@@ -11,6 +11,7 @@
 #include <time.h>
 #include <cassert>
 #include <memory>
+#include <tuple>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -22,7 +23,7 @@
 
 using namespace Pomerol;
 
-typedef std::pair<double, QuantumNumbers> EigenSystem;
+typedef std::tuple<RealType, QuantumNumbers, BlockNumber, InnerQuantumState> EigenSystem;
 
 
 void print_version(){
@@ -454,7 +455,7 @@ int main(int argc, char* argv[])
             // INFO(H_part.getEigenValues());
             QuantumNumbers q = H_part.getQuantumNumbers();
             for(InnerQuantumState j=0; j<H_part.getSize(); j++){
-                eigen.emplace_back( std::make_pair( H_part.getEigenValue(j), q ) );
+                eigen.emplace_back( std::make_tuple( H_part.getEigenValue(j), q, i, j) );
             }
         }
         // sort eigenvalues in ascending order
@@ -462,9 +463,29 @@ int main(int argc, char* argv[])
         // print all eigenvalues and corresponding quantum numbers
         std::ofstream fout(prms.file_eigen);
         for( const auto &eig : eigen )
-            fout << eig.first << "  " << eig.second << std::endl;
+            fout << std::get<0>(eig) << "  " << std::get<1>(eig) << std::endl;
         fout.close();
         // fprint_eigen(eigen);
+
+        // EigenVectors
+        // std::ofstream fout2(prms.file_eigenvec);
+        fout = std::ofstream(prms.file_eigenvec);
+        fout << "# FockState |... n_1 n_0> = ... * n_1|1> * n_0|0>," << std::endl;
+        fout << "#   where |0>, |1>, ... indicate 'Index' (site, orb, spin)" << std::endl;
+        fout << "#" << std::endl;
+        for( const auto &eig : eigen ){
+            fout << "# E=" << std::get<0>(eig) << ", q=" << std::get<1>(eig) << std::endl;
+            BlockNumber block = std::get<2>(eig);
+            InnerQuantumState inner = std::get<3>(eig);
+            const HamiltonianPart &H_part = H.getPart(block);
+            VectorType eigenstate = H_part.getEigenState(inner);
+            for(int i=0; i<eigenstate.size(); i++){
+                if(std::fabs(eigenstate[i]) > 1e-8){
+                    fout << " |" << S.getFockState(block, i) << "> " << eigenstate[i] << std::endl;
+                }
+            }
+        }
+        fout.close();
     }
     world.barrier();
     if(verbose) print_time(time_temp, "eigenstates");

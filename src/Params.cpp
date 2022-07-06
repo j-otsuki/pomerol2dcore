@@ -30,6 +30,7 @@ void Params::read(std::string &filename)
     file_umat     = pt.get<std::string>("file_umat", "umat.in");
     file_states   = pt.get<std::string>("file_states", "states.dat");
     file_eigen    = pt.get<std::string>("file_eigen", "eigenvalues.dat");
+    file_eigenvec = pt.get<std::string>("file_eigenvec", "eigenvectors.dat");
     file_retained = pt.get<std::string>("file_retained", "retained.dat");
     file_occup    = pt.get<std::string>("file_occup", "occup.dat");
 

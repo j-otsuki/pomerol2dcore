@@ -29,6 +29,7 @@ public:
     std::string file_umat;
     std::string file_states;
     std::string file_eigen;
+    std::string file_eigenvec;
     std::string file_retained;
     std::string file_occup;
 
