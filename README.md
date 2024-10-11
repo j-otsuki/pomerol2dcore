@@ -12,16 +12,29 @@ On pomerol repo:
 ```
   $ git checkout 7a45b6a
 ```
-Then install pomerol library.
+Then install pomerol library. Here is an example of the commands
+```
+  $ cmake -DCMAKE_BUILD_TYPE=Release\
+    -DCMAKE_INSTALL_PREFIX=<path>\
+    -DBOOSTROOT=<path>\
+    -DPOMEROL_COMPLEX_MATRIX_ELEMENTS=ON\
+    ../pomerol
+  $ make
+  $ make test
+  $ make install
+```
+The option ``-DPOMEROL_COMPLEX_MATRIX_ELEMENTS=ON`` is necessary if you want to treat complex matrix elements.
 
 On pomerol2dcore repo:
 ```
-  $ cmake -DCMAKE_BUILD_TYPE=Release -Dpomerol_DIR=/path_to_pomerol/share/pomerol/\
-   -DCMAKE_INSTALL_PREFIX=/install_directory ../pomerol2dcore
+  $ cmake -DCMAKE_BUILD_TYPE=Release\
+    -Dpomerol_DIR=<path_to_pomerol>/share/pomerol/\
+    -DCMAKE_INSTALL_PREFIX=<install_directory>\
+    ../pomerol2dcore
   $ make
   $ make install
 ```
-An executable file ``pomerol2dcore`` is installed in *install_directory*/bin.
+An executable file ``pomerol2dcore`` is installed in *<install_directory>*/bin.
 
 ## How to run
 
